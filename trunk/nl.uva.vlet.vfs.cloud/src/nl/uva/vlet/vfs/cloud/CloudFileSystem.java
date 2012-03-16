@@ -42,6 +42,7 @@ import java.io.File;
 import java.util.logging.Level;
 import nl.uva.vlet.Global;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
+import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.VlIOException;
 import org.jclouds.filesystem.reference.FilesystemConstants;
 
@@ -336,87 +337,98 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
 
-    protected VDir mkdir(VRL vrl, boolean ignoreExisting)
-            throws VRLSyntaxException, InterruptedException,
-            ExecutionException, ResourceException, CloudRequestTimeout {
-
-        //BlobStoreContext blobContext = getBlobStoreContext();
-        Boolean exists;
-        try {
-//            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
-            ListenableFuture<Boolean> res;
-
-            String[] containerAndPath = getContainerAndPath(vrl);
-            if (containerAndPath.length <= 1
-                    || StringUtil.isEmpty(containerAndPath[1])) {
-
-                res = asyncBlobStore.containerExists(containerAndPath[0]);
-
-                block(res);
-
-                exists = res.get();
-
-                if (exists && !ignoreExisting) {
-                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-                            vrl + "Exists");
-                } else if (exists) {
-                    return new CloudDir(this, vrl);
-                }
-
-                res = asyncBlobStore.createContainerInLocation(null,
-                        containerAndPath[0]);
-                Boolean created = res.get();
-
-                if (!created) {
-                    throw new nl.uva.vlet.exception.ResourceCreationFailedException(
-                            "Could not create " + vrl);
-                }
-            } else {
-                try {
-                    ListenableFuture<BlobMetadata> resMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-
-                    BlobMetadata meta = resMeta.get();
-
-                    // logger.debugPrintf(">>>>>>Type: %s \n", meta.getType());
-
-                    if (meta != null && meta.getType() == StorageType.BLOB) {
-                        throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-                                vrl + " already exists as a file");
-                    }
-                } catch (Exception ex) {
-                    if (!ex.getMessage().contains("(Is a directory)")) {
-                        if (ex instanceof ResourceAlreadyExistsException) {
-                            throw ((ResourceAlreadyExistsException) ex);
-                        }
-                        throw new ResourceException(ex.getMessage());
-                    }
-                }
-
-                res = asyncBlobStore.directoryExists(containerAndPath[0],
-                        containerAndPath[1]);
-
-                block(res);
-
-                exists = res.get();
-                if (exists && !ignoreExisting) {
-                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-                            vrl + "Exists");
-                }
-                logger.debugPrintf("mkdir(%s/%s)\n", containerAndPath[0],
-                        containerAndPath[1]);
-
-                ListenableFuture<Void> resCreate = asyncBlobStore.createDirectory(
-                        containerAndPath[0], containerAndPath[1]);
-                resCreate.get();
-            }
-
-        } finally {
-            //blobContext.close();
+    protected VDir mkdir(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, ResourceException {
+        String[] containerAndPath = getContainerAndPath(vrl);
+        //Create container
+        if (containerAndPath.length <= 1
+                || StringUtil.isEmpty(containerAndPath[1])) {
+            createContainer(containerAndPath[0], ignoreExisting);
+        } else {
+            createFolder(containerAndPath, ignoreExisting);
         }
-
         return new CloudDir(this, vrl);
     }
 
+//    protected VDir mkdir(VRL vrl, boolean ignoreExisting)
+//            throws VRLSyntaxException, InterruptedException,
+//            ExecutionException, ResourceException, CloudRequestTimeout {
+//
+//        //BlobStoreContext blobContext = getBlobStoreContext();
+//        Boolean exists;
+//        try {
+////            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
+//            ListenableFuture<Boolean> res;
+//
+//            String[] containerAndPath = getContainerAndPath(vrl);
+//            if (containerAndPath.length <= 1
+//                    || StringUtil.isEmpty(containerAndPath[1])) {
+//
+//                res = asyncBlobStore.containerExists(containerAndPath[0]);
+//
+//                block(res);
+//
+//                exists = res.get();
+//
+//                if (exists && !ignoreExisting) {
+//                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
+//                            vrl + "Exists");
+//                } else if (exists) {
+//                    return new CloudDir(this, vrl);
+//                }
+//
+//                res = asyncBlobStore.createContainerInLocation(null,
+//                        containerAndPath[0]);
+//                Boolean created = res.get();
+//
+//                if (!created) {
+//                    throw new nl.uva.vlet.exception.ResourceCreationFailedException(
+//                            "Could not create " + vrl);
+//                }
+//            } else {
+//                try {
+//                    ListenableFuture<BlobMetadata> resMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+//
+//                    BlobMetadata meta = resMeta.get();
+//
+//                    // logger.debugPrintf(">>>>>>Type: %s \n", meta.getType());
+//
+//                    if (meta != null && meta.getType() == StorageType.BLOB) {
+//                        throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
+//                                vrl + " already exists as a file");
+//                    }
+//                } catch (Exception ex) {
+//                    if (!ex.getMessage().contains("(Is a directory)")) {
+//                        if (ex instanceof ResourceAlreadyExistsException) {
+//                            throw ((ResourceAlreadyExistsException) ex);
+//                        }
+//                        throw new ResourceException(ex.getMessage());
+//                    }
+//                }
+//
+//                res = asyncBlobStore.directoryExists(containerAndPath[0],
+//                        containerAndPath[1]);
+//
+//                block(res);
+//
+//                exists = res.get();
+//                if (exists && !ignoreExisting) {
+//                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
+//                            vrl + "Exists");
+//                }
+//                logger.debugPrintf("mkdir(%s/%s)\n", containerAndPath[0],
+//                        containerAndPath[1]);
+//
+//                ListenableFuture<Void> resCreate = asyncBlobStore.createDirectory(
+//                        containerAndPath[0], containerAndPath[1]);
+//                resCreate.get();
+//            }
+//
+//        } finally {
+//            //blobContext.close();
+//        }
+//
+//        return new CloudDir(this, vrl);
+//    }
     private void block(ListenableFuture<?> res) throws InterruptedException,
             CloudRequestTimeout {
         int waitTime = 1;
@@ -766,4 +778,67 @@ public class CloudFileSystem extends FileSystemNode {
 //        }
 //        return asyncBlobStore;
 //    }
+
+    private void createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException {
+        ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
+        Boolean containerExists = res.get();
+        if (containerExists && !ignoreExisting) {
+            throw new ResourceAlreadyExistsException(
+                    container + "Exists");
+        } else if (containerExists) {
+            //return new CloudDir(this, vrl);
+            return;
+        }
+        ListenableFuture<Boolean> createContainer = asyncBlobStore.createContainerInLocation(null,
+                container);
+        Boolean created = createContainer.get();
+
+        if (!created) {
+            throw new ResourceCreationFailedException(
+                    "Could not create " + container);
+        }
+        //return new CloudDir(this, vrl);
+        return;
+    }
+
+    private void createFolder(String[] containerAndPath, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceException {
+        //Exists ?
+        BlobMetadata meta = null;
+        try {
+            ListenableFuture<BlobMetadata> blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+            meta = blobMeta.get();
+        } catch (Exception ex) {
+            if (ex.getMessage().contains("(Is a directory)") && !ignoreExisting) {
+                throw new ResourceAlreadyExistsException(ex.getMessage());
+            }else{
+                return;
+            }
+        }
+        if (meta == null) {
+            //Ok non existing
+//            try {
+                ListenableFuture<Void> createdDirRes = asyncBlobStore.createDirectory(containerAndPath[0], containerAndPath[1]);
+                createdDirRes.get();
+                //return new CloudDir(this, vrl);
+                return;
+//            } catch (Exception ex) {
+//                if (!ex.getMessage().contains("(Is a directory)")) {
+//                    if (ex instanceof ResourceAlreadyExistsException) {
+//                        throw ((ResourceAlreadyExistsException) ex);
+//                    }
+//                    throw new ResourceException(ex.getMessage());
+//                }
+//            }
+        }
+        //What is it?
+        if (meta.getType() == StorageType.BLOB) {
+            throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
+                    containerAndPath[1] + " already exists as a file");
+        }
+        if (!ignoreExisting) {
+            throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
+                    containerAndPath[1] + "Exists");
+        }
+        //return new CloudDir(this, vrl);
+    }
 }

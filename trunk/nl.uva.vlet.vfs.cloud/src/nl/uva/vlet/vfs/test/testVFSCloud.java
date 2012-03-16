@@ -49,10 +49,10 @@ public class testVFSCloud extends testVFS {
 
     static {
         try {
-//			testLoc = new VRL(
-//					"swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
-            testLoc = new VRL(
-                    "filesystem:/testBlobStoreVFS");
+			testLoc = new VRL(
+					"swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
+//            testLoc = new VRL(
+//                    "filesystem:/testBlobStoreVFS");
         } catch (VRLSyntaxException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

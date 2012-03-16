@@ -2992,7 +2992,7 @@ public class testVFS extends VTestCase {
         byte[] randomData = new byte[1024 * 1024];//1MB
         Random r = new Random();
         OutputStream lfos = newFile.getOutputStream();
-        int count = 20;
+        int count = 60;
 
         long startTime = System.currentTimeMillis();
 

@@ -1,6 +1,5 @@
 package nl.uva.vlet.vfs.test;
 
-import java.net.MalformedURLException;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_EXISTS;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_HOSTNAME;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_LENGTH;
@@ -15,12 +14,8 @@ import static nl.uva.vlet.data.VAttributeConstants.ATTR_TYPE;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.cert.Certificate;
-import java.net.URL;
 import java.util.concurrent.ExecutionException;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLPeerUnverifiedException;
 import junit.framework.Assert;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
