@@ -34,6 +34,7 @@ import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
 import nl.uva.vlet.vrs.VRS;
 import nl.uva.vlet.vrs.VRSContext;
+import org.jclouds.blobstore.domain.StorageType;
 
 public class TestCloudFS {
 
@@ -123,7 +124,7 @@ public class TestCloudFS {
         boolean exists = cloudFS.openLocation(vrl).exists();
 
         if (exists) {
-            cloudFS.rm(vrl);
+            cloudFS.rm(vrl,StorageType.BLOB);
         }
 
         cloudFS.touch(vrl, true);
@@ -227,7 +228,7 @@ public class TestCloudFS {
 
         VRL vrl = testLoc.append("/test_1/newDir1");
         // cloudFS.createDir(vrl, true);
-        boolean success = cloudFS.rm(vrl);
+        boolean success = cloudFS.rm(vrl,StorageType.FOLDER);
 
         logger.debugPrintf("Success?? %s \n", success);
 
@@ -273,7 +274,7 @@ public class TestCloudFS {
         VRL vrl2 = testLoc.append("/testBlobStoreVFS");
         cloudFS.createDir(testLoc.append("testBlobStoreVFS"), false);
 
-        cloudFS.rm(vrl2);
+        cloudFS.rm(vrl2,StorageType.FOLDER);
     }
 
     private static void testOpenNode() throws VlException {

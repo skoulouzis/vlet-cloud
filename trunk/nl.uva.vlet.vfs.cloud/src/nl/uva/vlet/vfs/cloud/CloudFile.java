@@ -55,7 +55,7 @@ public class CloudFile extends VFile implements VChecksum {
 	@Override
 	public boolean delete() throws VlException {
 		try {
-			return cvfs.rm(getVRL());
+			return cvfs.rm(getVRL(), StorageType.BLOB);
 		} catch (InterruptedException e) {
 			throw new VlException(e);
 		} catch (ExecutionException e) {
