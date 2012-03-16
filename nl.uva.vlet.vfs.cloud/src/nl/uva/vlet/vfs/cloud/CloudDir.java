@@ -46,7 +46,7 @@ public class CloudDir extends VDir {// implements VUnixFileMode {
     @Override
     public boolean delete(boolean recurse) throws VlException {
         try {
-            return cvfs.rm(getVRL());
+            return cvfs.rm(getVRL(),StorageType.FOLDER);
         } catch (InterruptedException e) {
             throw new VlException(e);
         } catch (ExecutionException e) {

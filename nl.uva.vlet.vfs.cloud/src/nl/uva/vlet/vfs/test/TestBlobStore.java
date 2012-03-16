@@ -8,20 +8,24 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
 import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.ResourceException;
+import nl.uva.vlet.exception.VRLSyntaxException;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.blobstore.domain.Blob;
 import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageType;
+import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.filesystem.reference.FilesystemConstants;
 
 /**
@@ -37,13 +41,103 @@ public class TestBlobStore {
             setup();
 //        testToch();
 //            touch(true);
-            mkdir(true);
+//            mkdir(true);
+//            rm();
+//            writeData();
+            exists(StorageType.BLOB);
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
             asyncBlobStore.getContext().close();
         }
 
+    }
+
+    private static void writeData() throws InterruptedException, ExecutionException, IOException {
+        File bufferFile = File.createTempFile("tmpFile", null);
+        FileOutputStream fos = new FileOutputStream(bufferFile);
+        byte[] data = new byte[1024 * 1024];
+        Random r = new Random();
+        r.nextBytes(data);
+        for (int i = 0; i < 10; i++) {
+            fos.write(data);
+        }
+        fos.flush();
+        fos.close();
+        long startTime;
+        try {
+            String[] containerAndPath = new String[]{"testBlobStoreVFS", "dirListTest2/file0"};
+
+            startTime = System.currentTimeMillis();
+
+            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
+
+            Blob blob = res.get();
+            if (blob == null) {
+//                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
+                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
+
+            }
+            blob.setPayload(bufferFile);
+            if (bufferFile.length() > (800 * 1024 * 1024)) {
+                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+            } else {
+                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            }
+        } finally {
+            bufferFile.delete();
+        }
+
+        long elapsedTime = System.currentTimeMillis() - startTime;
+        debug("Elapsed time = " + elapsedTime);
+    }
+
+    protected static boolean exists(StorageType type)
+            throws VRLSyntaxException, InterruptedException,
+            ExecutionException, ResourceException {
+        
+        
+        String[] containerAndPath = new String[]{"testBlobStoreVFS", "testDirB0/subFile1"};
+
+
+        if (containerAndPath.length <= 1
+                || StringUtil.isEmpty(containerAndPath[1])) {
+
+            ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
+
+            // This waits for request to complete
+            return resContainerExists.get();
+
+        } else if (containerAndPath.length > 1) {
+            
+            ListenableFuture<BlobMetadata> metaRes = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+            BlobMetadata meta = metaRes.get();
+            
+            if(meta != null && meta.getType()==type){
+                return true;
+            }
+            
+        }
+        return false;
+    }
+
+    public static boolean rm() throws VRLSyntaxException,
+            InterruptedException, ExecutionException {
+        String[] containerAndPath = new String[]{"testBlobStoreVFS", "dirListTest2/file0"};
+
+        if (containerAndPath.length <= 1
+                || StringUtil.isEmpty(containerAndPath[1])) {
+
+            ListenableFuture<Void> res = asyncBlobStore.deleteContainer(containerAndPath[0]);
+            // This waits for request to complete
+            res.get();
+            return true;
+        } else if (containerAndPath.length > 1) {
+            ListenableFuture<Void> resRemove = asyncBlobStore.removeBlob(containerAndPath[0], containerAndPath[1]);
+            resRemove.get();
+            return true;
+        }
+        return false;
     }
 
     private static void testToch() throws InterruptedException, ExecutionException, IOException {
@@ -118,7 +212,7 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        String provider = "swift"; // "in-memory"
+        String provider = "filesystem";//"swift"; // "in-memory"
 //        Properties props = new Properties();
 
         Properties props = getCloudProperties();
@@ -126,9 +220,8 @@ public class TestBlobStore {
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
         }
-        String endpoint = "https://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS";
-
-        props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
+//        String endpoint = "https://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS";
+//        props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
         props.setProperty(org.jclouds.Constants.PROPERTY_TRUST_ALL_CERTS,
                 "true");
         props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
