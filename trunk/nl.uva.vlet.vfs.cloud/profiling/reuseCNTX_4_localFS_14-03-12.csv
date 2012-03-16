@@ -1,0 +1,145 @@
+Hot Spots - Method;Self time [%];Self time ms;Invocations
+nl.uva.vlet.vfs.cloud.CloudOutputStream.getBlobStoreContext();25.651178;3169.183;29
+nl.uva.vlet.vfs.test.testVFS.setUp();23.303846;2879.172;61
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getBlobStoreContext();13.942888;1722.633;366
+nl.uva.vlet.vfs.cloud.CloudFSFactory.updateServerInfo(nl.uva.vlet.vrs.VRSContext, nl.uva.vlet.vrs.ServerInfo, nl.uva.vlet.vrl.VRL);7.847488;969.551;133
+nl.uva.vlet.vfs.cloud.CloudFileSystem.queryPath(nl.uva.vlet.vrl.VRL);3.9771194;491.37;97
+nl.uva.vlet.vfs.test.testBlobStore.suite();3.940373;486.83;1
+nl.uva.vlet.vfs.cloud.CloudOutputStream.writeData();3.5267725;435.73;29
+nl.uva.vlet.vfs.cloud.CloudFileSystem.ls(nl.uva.vlet.vrl.VRL);3.0287766;374.203;11
+nl.uva.vlet.vfs.test.testVFS.testMove10MBForthAndBack();2.0063584;247.884;1
+nl.uva.vlet.vfs.test.testVFS.testStreamRead();1.5949999;197.061;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getInputStream(nl.uva.vlet.vrl.VRL);1.4679737;181.367;11
+nl.uva.vlet.vfs.cloud.CloudFileSystem.exists(nl.uva.vlet.vrl.VRL, org.jclouds.blobstore.domain.StorageType);1.4024613;173.273;109
+nl.uva.vlet.vfs.test.testVFS.testStreamWrite();1.2861352;158.901;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.rm(nl.uva.vlet.vrl.VRL);0.81376475;100.54;53
+nl.uva.vlet.vfs.cloud.CloudOutputStream.write(byte[], int, int);0.7005224;86.549;667
+nl.uva.vlet.vfs.test.testVFS.testSetGetSimpleContentsExistingFile();0.6428774;79.427;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.touch(nl.uva.vlet.vrl.VRL, boolean);0.63022655;77.864;52
+nl.uva.vlet.vfs.test.testBlobStore.main(String[]);0.60834056;75.16;1
+nl.uva.vlet.vfs.test.VTestCase.verbose(int, String);0.58532137;72.316;181
+nl.uva.vlet.vfs.cloud.CloudFileSystem.mkdir(nl.uva.vlet.vrl.VRL, boolean);0.31890935;39.401;35
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getContainerAndPath(nl.uva.vlet.vrl.VRL);0.25855282;31.944;395
+nl.uva.vlet.vfs.test.testVFS.testX3rdPartyTransfer(nl.uva.vlet.vrl.VRL, nl.uva.vlet.vrl.VRL, String, String, boolean);0.23546891;29.092;3
+nl.uva.vlet.vfs.test.testVFS.testReadWriteBytes();0.21971;27.145;1
+nl.uva.vlet.vfs.test.VTestCase.<init>();0.20214616;24.975;61
+nl.uva.vlet.vfs.test.testVFS.testSetGetSimpleContentsNewFile();0.19039376;23.523;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.removePrefix(String);0.12627356;15.601;460
+nl.uva.vlet.vfs.cloud.CloudFSFactory.createNewFileSystem(nl.uva.vlet.vrs.VRSContext, nl.uva.vlet.vrs.ServerInfo, nl.uva.vlet.vrl.VRL);0.12280126;15.172;1
+nl.uva.vlet.vfs.test.testVFS.testCopyDirToRemote();0.11651227;14.395;1
+nl.uva.vlet.vfs.test.testVFS.testPrintInfo();0.091283455;11.278;1
+nl.uva.vlet.vfs.test.testBlobStore.<clinit>;0.078503124;9.699;1
+nl.uva.vlet.vfs.test.testVFS.testTildeExpansion();0.07809033;9.648;1
+nl.uva.vlet.vfs.test.TestSettings.<clinit>;0.06941363;8.576;1
+nl.uva.vlet.vfs.test.testVFS.getServerInfo();0.0675844;8.35;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getPath(nl.uva.vlet.vrl.VRL);0.06533428;8.072;65
+nl.uva.vlet.vfs.test.testVFS.testVFSNodeAttributes(nl.uva.vlet.vfs.VFSNode);0.06360218;7.858;2
+nl.uva.vlet.vfs.test.testVFS.testCopyEmptyDir();0.05875391;7.259;1
+nl.uva.vlet.vfs.test.TestSettings.<init>();0.05787977;7.151;1
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteFullDir();0.051364146;6.346;1
+nl.uva.vlet.vfs.test.testVFS.testCreateDirPermissionDenied();0.04739002;5.855;1
+nl.uva.vlet.vfs.cloud.CloudOutputStream.<init>(String, String, String, java.util.Properties);0.044055317;5.443;29
+nl.uva.vlet.vfs.test.testVFS.testListDirFiltered();0.04196708;5.185;1
+nl.uva.vlet.vfs.test.testVFS.testExists();0.03745066;4.627;1
+nl.uva.vlet.vfs.test.testVFS.testAlias();0.0281831;3.482;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.debug(String);0.02727658;3.37;3
+nl.uva.vlet.vfs.test.testVFS.testCopyMoveToRemote(boolean);0.02267922;2.802;2
+nl.uva.vlet.vfs.cloud.CloudFileSystem.newFile(nl.uva.vlet.vrl.VRL);0.019417362;2.399;91
+nl.uva.vlet.vfs.cloud.CloudFileSystem.newDir(nl.uva.vlet.vrl.VRL);0.018956007;2.342;107
+nl.uva.vlet.vfs.cloud.CloudOutputStream.close();0.018931726;2.339;29
+nl.uva.vlet.vfs.test.testVFS.testCopyMoveToLocal(boolean);0.018834598;2.327;2
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteRecursiveDir();0.015766995;1.948;1
+nl.uva.vlet.vfs.test.testVFS.testVRandomReader();0.015653681;1.934;1
+nl.uva.vlet.vfs.test.testVFS.testListDirIterator();0.014026798;1.733;1
+nl.uva.vlet.vfs.test.testVFS.<init>();0.013492598;1.667;61
+nl.uva.vlet.vfs.test.testVFS.testZZZRemoveTestDir();0.012124723;1.498;1
+nl.uva.vlet.vfs.test.testVFS.testRandomReadable();0.011655274;1.44;1
+nl.uva.vlet.vfs.cloud.CloudDir.exists();0.008458167;1.045;74
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteFullpathFile();0.00813441;1.005;1
+nl.uva.vlet.vfs.cloud.CloudDir.<init>(nl.uva.vlet.vfs.cloud.CloudFileSystem, nl.uva.vlet.vrl.VRL);0.007980625;0.986;202
+nl.uva.vlet.vfs.test.testVFS.testZCreateFileWhileDirectoryWithSameNameExists();0.0072521702;0.896;1
+nl.uva.vlet.vfs.cloud.CloudFSFactory.getSchemeNames();0.00698507;0.863;2
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getResourceType(org.jclouds.blobstore.domain.StorageType, nl.uva.vlet.vrl.VRL);0.0069284127;0.856;104
+nl.uva.vlet.vfs.cloud.CloudFileSystem.<init>(nl.uva.vlet.vrs.VRSContext, nl.uva.vlet.vrs.ServerInfo);0.006499434;0.803;1
+nl.uva.vlet.vfs.test.testVFS.testVCommentable();0.005981422;0.739;1
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteFile();0.0057709794;0.713;1
+nl.uva.vlet.vfs.test.testVFS.testFSCreateAndDeleteFile();0.0047835186;0.591;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.block(com.google.common.util.concurrent.ListenableFuture);0.004751143;0.587;237
+nl.uva.vlet.vfs.test.testVFS._testStreamWrite(int);0.0046863914;0.579;2
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getAsyncBlobStore();0.0045245127;0.559;366
+nl.uva.vlet.vfs.test.testVFS.testZExceptionsExistingDir();0.0038284338;0.473;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getOutputStream(nl.uva.vlet.vrl.VRL);0.0034723002;0.429;29
+nl.uva.vlet.vfs.test.testVFS.testZCreateDirectoryWhileFileWithSameNameExists();0.0034723002;0.429;1
+nl.uva.vlet.vfs.cloud.CloudFile.<init>(nl.uva.vlet.vfs.VFileSystem, nl.uva.vlet.vrl.VRL);0.0034237367;0.423;134
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteFileWithSpace();0.0031242608;0.386;1
+nl.uva.vlet.vfs.test.testVFS.testZExceptionsExistingFile();0.0030918852;0.382;1
+nl.uva.vlet.vfs.test.testVFS.testRootExists();0.0028814427;0.356;1
+nl.uva.vlet.vfs.test.testVFS.testCreateAndIgnoreExistingDir();0.0028490669;0.352;1
+nl.uva.vlet.vfs.test.testVFS.testCreateDeleteFileWithSpaceAndListParentDir();0.0026467184;0.327;1
+nl.uva.vlet.vfs.test.testVFS.testStreamWriteTruncates();0.0025576851;0.316;1
+nl.uva.vlet.vfs.test.testBlobStore.getCloudProperties();0.0024686519;0.305;1
+nl.uva.vlet.vfs.test.testVFS.testACLs();0.0022824912;0.282;1
+nl.uva.vlet.vfs.test.testVFS.testVReplicatable();0.0022501154;0.278;1
+nl.uva.vlet.vfs.test.testVFS.testZExceptionCreateDirNotIgnoreExsting();0.0020720486;0.256;1
+nl.uva.vlet.vfs.cloud.CloudFile.getLength();0.0018939821;0.234;35
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteDirWithSpace();0.0017725729;0.219;1
+nl.uva.vlet.vfs.cloud.CloudFSFactory.getName();0.0016997275;0.21;281
+nl.uva.vlet.vfs.test.testVFS.testZExceptionCreateFileDoNotIgnoreExisting();0.0016511638;0.204;1
+nl.uva.vlet.vfs.test.testVFS.testCreateAndIgnoreExistingFile();0.0015945062;0.197;1
+nl.uva.vlet.vfs.test.testVFS.testCreateAndDeleteSubDir();0.0015297547;0.189;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.mv(nl.uva.vlet.vrl.VRL, String, boolean);0.0014730971;0.182;1
+nl.uva.vlet.vfs.test.TestSettings.getTestLocation(String);0.0014488153;0.179;61
+nl.uva.vlet.vfs.cloud.CloudFileSystem.openLocation(nl.uva.vlet.vrl.VRL);0.0012464668;0.154;64
+nl.uva.vlet.vfs.cloud.CloudFile.create(boolean);0.001222185;0.151;52
+nl.uva.vlet.vfs.test.testBlobStore.getRemoteLocation();0.0011898092;0.147;192
+nl.uva.vlet.vfs.test.TestSettings.getLocation(String);0.0011736213;0.145;61
+nl.uva.vlet.vfs.test.testVFS.testSetLength();0.0011493395;0.142;1
+nl.uva.vlet.vfs.test.testVFS.testCreateAndRenameDir();0.001084588;0.134;1
+nl.uva.vlet.vfs.test.testVFS.nextFilename(String);0.0010279304;0.127;17
+nl.uva.vlet.vfs.test.testVFS.testFileAttributes();9.874607E-4;0.122;1
+nl.uva.vlet.vfs.test.testVFS.testReadWriteBytes(nl.uva.vlet.vfs.VFile, long, byte[]);9.550849E-4;0.118;4
+nl.uva.vlet.vfs.cloud.CloudFileSystem.openLocation(nl.uva.vlet.vrl.VRL);9.1461523E-4;0.113;65
+nl.uva.vlet.vfs.test.testVFS.testCreateAndRenameFile();8.822395E-4;0.109;1
+nl.uva.vlet.vfs.cloud.CloudFile.delete();8.660516E-4;0.107;35
+nl.uva.vlet.vfs.test.testBlobStore.<init>();8.5795764E-4;0.106;61
+nl.uva.vlet.vfs.test.testVFS.testFSCreateAndDeleteDir();8.417698E-4;0.104;1
+nl.uva.vlet.vfs.cloud.CloudFile.exists();8.3367585E-4;0.103;35
+nl.uva.vlet.vfs.cloud.CloudOutputStream.<clinit>;8.1748795E-4;0.101;1
+nl.uva.vlet.vfs.test.testVFS.testVUnixAttributes();8.1748795E-4;0.101;1
+nl.uva.vlet.vfs.cloud.CloudDir.create(boolean);8.013001E-4;0.099;35
+nl.uva.vlet.vfs.test.testVFS.testReadWriteRandomBytes();7.446425E-4;0.092;1
+nl.uva.vlet.vfs.test.testVFS.testStreamReadWriteSingleBytes();7.122667E-4;0.088;1
+nl.uva.vlet.vfs.test.testVFS.testRename(nl.uva.vlet.vfs.VDir, String, String);6.637031E-4;0.082;1
+nl.uva.vlet.vfs.cloud.CloudFile.getOutputStream();6.1513943E-4;0.076;29
+nl.uva.vlet.vfs.test.testVFS.testVChecksum();5.989516E-4;0.074;1
+nl.uva.vlet.vfs.test.VTestCase.message(String);5.018243E-4;0.062;37
+nl.uva.vlet.vfs.cloud.CloudConstants.<clinit>;3.9660308E-4;0.049;1
+nl.uva.vlet.vfs.cloud.CloudDir.delete(boolean);3.8850913E-4;0.048;18
+nl.uva.vlet.vfs.cloud.CloudFileSystem$1.<clinit>;3.7232126E-4;0.046;1
+nl.uva.vlet.vfs.cloud.CloudDir.<clinit>;3.399455E-4;0.042;1
+nl.uva.vlet.vfs.cloud.CloudOutputStream.flush();3.2375762E-4;0.04;29
+nl.uva.vlet.vfs.cloud.CloudFile.getInputStream();3.1566367E-4;0.039;11
+nl.uva.vlet.vfs.cloud.CloudDir.list();2.994758E-4;0.037;11
+nl.uva.vlet.vfs.test.TestSettings.getDefault();2.7519398E-4;0.034;61
+nl.uva.vlet.vfs.test.testVFS.testRenameWithSpaces();2.1853638E-4;0.027;1
+nl.uva.vlet.vfs.test.testVFS.testZRegressionStreamWrite32KBug();1.6187881E-4;0.02;1
+nl.uva.vlet.vfs.test.testVFS.createDir(nl.uva.vlet.vfs.VFileSystem, nl.uva.vlet.vrl.VRL, boolean);1.6187881E-4;0.02;2
+nl.uva.vlet.vfs.test.testVFS.createFile(nl.uva.vlet.vfs.VFileSystem, nl.uva.vlet.vrl.VRL, boolean);1.6187881E-4;0.02;1
+nl.uva.vlet.vfs.test.testVFS.testX3rdPartySameServer();1.5378486E-4;0.019;1
+nl.uva.vlet.vfs.test.testVFS.testCopyToRemote();1.2950304E-4;0.016;1
+nl.uva.vlet.vfs.test.testVFS.testCopyToLocal();1.2950304E-4;0.016;1
+nl.uva.vlet.vfs.test.testVFS.testX3rdPartyTwoServers();1.214091E-4;0.015;1
+nl.uva.vlet.vfs.test.VTestCase.<clinit>;1.1331516E-4;0.014;1
+nl.uva.vlet.vfs.cloud.CloudFile.<clinit>;8.903334E-5;0.011;1
+nl.uva.vlet.vfs.cloud.CloudDir.rename(String, boolean);8.0939404E-5;0.01;1
+nl.uva.vlet.vfs.cloud.CloudFSFactory.<init>();6.475152E-5;0.008;1
+nl.uva.vlet.vfs.test.testVFS.testX3rdPartyTwoServersReverse();4.0469702E-5;0.005;1
+nl.uva.vlet.vfs.test.testVFS.testX3rdPartySameServerReverse();3.237576E-5;0.004;1
+nl.uva.vlet.vfs.test.testVFS.testMoveToRemote();1.618788E-5;0.002;1
+nl.uva.vlet.vfs.test.testVFS.testMoveToLocal();1.618788E-5;0.002;1
+nl.uva.vlet.vfs.test.VTestCase.debug(String);8.09394E-6;0.001;1
+nl.uva.vlet.vfs.cloud.CloudDir.isWritable();0;0;2
+nl.uva.vlet.vfs.cloud.CloudDir.isReadable();0;0;1
+nl.uva.vlet.vfs.cloud.CloudFile.isReadable();0;0;1
+nl.uva.vlet.vfs.cloud.CloudFile.isWritable();0;0;1
+nl.uva.vlet.vfs.cloud.CloudFileSystem.getDefaultHome();0;0;1
