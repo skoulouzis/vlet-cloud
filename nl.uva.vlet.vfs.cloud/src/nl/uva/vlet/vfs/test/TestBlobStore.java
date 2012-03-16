@@ -23,7 +23,6 @@ import org.jclouds.blobstore.domain.Blob;
 import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageType;
 import org.jclouds.filesystem.reference.FilesystemConstants;
-import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 
 /**
  *
