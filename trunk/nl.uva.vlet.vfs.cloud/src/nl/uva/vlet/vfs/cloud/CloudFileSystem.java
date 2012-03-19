@@ -475,9 +475,15 @@ public class CloudFileSystem extends FileSystemNode {
                     throw new ResourceException(ex.getMessage());
                 }
             }
-
-            if (meta != null && meta.getType() == type) {
-                return true;
+            
+            if (meta != null) {
+                if (type == meta.getType()) {
+                    return true;
+                }
+                //We can have FOLDER or RELATIVE_PATH so it's easier to rule out it's not BLOB
+                if (type != StorageType.BLOB && meta.getType() != StorageType.BLOB) {
+                    return true;
+                }
             }
         }
         return false;
