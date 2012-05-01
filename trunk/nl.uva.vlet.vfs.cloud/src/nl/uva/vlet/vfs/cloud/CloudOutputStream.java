@@ -59,11 +59,9 @@ public class CloudOutputStream extends OutputStream {
     }
 
     private void writeData() throws InterruptedException, ExecutionException {
-
         try {
-
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(container, blobName);
-            
+
             Blob blob = res.get();
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(blobName).build();
