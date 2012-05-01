@@ -5,20 +5,18 @@
 package nl.uva.vlet.vfs.test;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
 import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
+import org.apache.commons.io.IOUtils;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
@@ -27,6 +25,13 @@ import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageType;
 import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.filesystem.reference.FilesystemConstants;
+import org.jclouds.http.HttpRequest;
+import org.jclouds.http.config.JavaUrlHttpCommandExecutorServiceModule;
+import org.jclouds.io.Payload;
+import org.jclouds.io.WriteTo;
+import org.jclouds.io.payloads.BasePayload;
+import org.jclouds.io.payloads.StreamingPayload;
+import org.jclouds.rest.HttpClient;
 
 /**
  *
@@ -44,7 +49,9 @@ public class TestBlobStore {
 //            mkdir(true);
 //            rm();
 //            writeData();
-            exists(StorageType.BLOB);
+//            exists(StorageType.BLOB);
+            getOutPutStream();
+
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
@@ -95,8 +102,8 @@ public class TestBlobStore {
     protected static boolean exists(StorageType type)
             throws VRLSyntaxException, InterruptedException,
             ExecutionException, ResourceException {
-        
-        
+
+
         String[] containerAndPath = new String[]{"testBlobStoreVFS", "testDirB0/subFile1"};
 
 
@@ -109,14 +116,14 @@ public class TestBlobStore {
             return resContainerExists.get();
 
         } else if (containerAndPath.length > 1) {
-            
+
             ListenableFuture<BlobMetadata> metaRes = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
             BlobMetadata meta = metaRes.get();
-            
-            if(meta != null && meta.getType()==type){
+
+            if (meta != null && meta.getType() == type) {
                 return true;
             }
-            
+
         }
         return false;
     }
@@ -307,5 +314,39 @@ public class TestBlobStore {
                     containerAndPath[1] + "Exists");
         }
         //return new CloudDir(this, vrl);
+    }
+
+    private static void getOutPutStream() {
+        try {
+            String[] containerAndPath = new String[]{"testBlobStoreVFS", "nonExisting"};
+            Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
+            byte[] buf = new byte[5];
+            //            ByteArrayInputStream ins = new ByteArrayInputStream("DATA".getBytes());
+            FileInputStream ins = new FileInputStream(new File("/etc/passwd"));
+            blob.setPayload(ins);
+            
+//            ByteArrayOutputStream out = new ByteArrayOutputStream();
+//            for(int i=0;i<10;i++){
+//                out.write("DATA".getBytes());                
+//            }
+//            out.flush();
+//            out.close();
+
+            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
+            InputStream in = res.get().getPayload().getInput();
+            byte[] readBuff = new byte[3];
+            int b=0;
+             while (b != -1){
+                b = in.read(readBuff);
+                System.out.println("Data: " + new String(readBuff));
+            }
+            in.close();
+            
+        } catch (Exception ex) {
+            Logger.getLogger(TestBlobStore.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+
     }
 }
