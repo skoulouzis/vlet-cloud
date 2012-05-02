@@ -1,6 +1,7 @@
 package nl.uva.vlet.vfs.cloud;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -18,7 +19,7 @@ import java.io.ByteArrayOutputStream;
 import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
-    
+
     private String provider;
     private Properties props;
     private String container;
@@ -27,73 +28,91 @@ public class CloudOutputStream extends OutputStream {
     private File bufferFile;
     private OutputStream out;
     static ClassLogger logger;
-    
+
     static {
         logger = ClassLogger.getLogger(CloudOutputStream.class);
         logger.setLevelToDebug();
     }
     private final AsyncBlobStore asyncBlobStore;
-    
+    private int bytesWriten = 0;
+
     CloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore) throws IOException {
         this.container = container;
         this.blobName = blobName;
-        
+
         this.asyncBlobStore = asyncBlobStore;
-        
+
         out = new ByteArrayOutputStream();
-        //        out = new FileOutputStream(bufferFile);
-        bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
     }
-    
+
     @Override
     public void write(final int b) throws IOException {
-        out.write(b);
+        bytesWriten++;
+        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            out.write(b);
+        } else {
+            dumpTheArrayAndSwitchToFile();
+            out.write(b);
+        }
     }
-    
+
     private void writeData() throws InterruptedException, ExecutionException {
         try {
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(container, blobName);
-            
+
             Blob blob = res.get();
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(blobName).build();
             }
             if (out instanceof ByteArrayOutputStream) {
-                blob.setPayload(((ByteArrayOutputStream) out).toByteArray());                
+                blob.setPayload(((ByteArrayOutputStream) out).toByteArray());
             } else if (out instanceof FileOutputStream) {
-                blob.setPayload(bufferFile);                
+                blob.setPayload(bufferFile);
+                if (bufferFile.length() > (800 * 1024 * 1024)) {
+                    asyncBlobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
+                }
             }
-            if (bufferFile.length() > (800 * 1024 * 1024)) {
-                asyncBlobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
-            } else {
-                asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
-            }
+            asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
         } finally {
-            bufferFile.delete();
+            if (bufferFile != null) {
+                bufferFile.delete();
+            }
         }
     }
-    
+
     @Override
     public void write(final byte[] b, final int off, final int len)
             throws IOException {
-        out.write(b, off, len);
+        bytesWriten += len;
+        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            out.write(b, off, len);
+        } else {
+            dumpTheArrayAndSwitchToFile();
+            out.write(b, off, len);
+        }
     }
-    
+
     @Override
     public void write(final byte[] b) throws IOException {
-        out.write(b);
+        bytesWriten += b.length;
+        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            out.write(b);
+        } else {
+            dumpTheArrayAndSwitchToFile();
+            out.write(b);
+        }
     }
-    
+
     @Override
     public void flush() throws IOException {
         out.flush();
     }
-    
+
     @Override
     public void close() throws IOException {
-        
+
         out.close();
-        
+
         try {
             writeData();
         } catch (InterruptedException e) {
@@ -107,4 +126,17 @@ public class CloudOutputStream extends OutputStream {
 //    private BlobStoreContext getBlobStoreContext() {
 //        return new BlobStoreContextFactory().createContext(provider, props);
 //    }
+
+    private void dumpTheArrayAndSwitchToFile() throws FileNotFoundException, IOException {
+        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
+            FileOutputStream fos = new FileOutputStream(bufferFile);
+
+            fos.write(((ByteArrayOutputStream) out).toByteArray());
+            out.flush();
+            out.close();
+
+            out = fos;
+        }
+    }
 }

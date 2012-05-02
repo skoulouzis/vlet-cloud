@@ -13,4 +13,6 @@ public class CloudConstants {
         "swift", "hpcloud-objectstorage-lvs", "cloudonestorage", "cloudfiles-us", 
         "azureblob", "walrus", "aws-s3", "cloudfiles", FILESYSTEM_SCHME};
     public static final int TIME_OUT = 15000;
+    
+    public static final int OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES = 60*1024*1024;//60MB
 }
