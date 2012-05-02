@@ -18,6 +18,7 @@ import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import org.apache.commons.io.IOUtils;
 import org.jclouds.blobstore.AsyncBlobStore;
+import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.blobstore.domain.Blob;
@@ -322,27 +323,25 @@ public class TestBlobStore {
             Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
             byte[] buf = new byte[5];
             //            ByteArrayInputStream ins = new ByteArrayInputStream("DATA".getBytes());
-            FileInputStream ins = new FileInputStream(new File("/etc/passwd"));
-            blob.setPayload(ins);
-            
-//            ByteArrayOutputStream out = new ByteArrayOutputStream();
-//            for(int i=0;i<10;i++){
-//                out.write("DATA".getBytes());                
-//            }
-//            out.flush();
-//            out.close();
+            String filePath1 = "/home/" + System.getProperty("user.home") + "/Documents/mails/thunderbird.mitsosl.uva.nl.tar.gz.gpg";
+            String filePath2 = "/etc/passwd";
+            File aLargeFile = new File(filePath2);
+            InputStream ins = new FileInputStream(aLargeFile);
+                        blob.setPayload(ins);
 
-            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            BlobStore blobstore = asyncBlobStore.getContext().getBlobStore();
+            String sdd = blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
             InputStream in = res.get().getPayload().getInput();
             byte[] readBuff = new byte[3];
-            int b=0;
-             while (b != -1){
+            int b = 0;
+            while (b != -1) {
                 b = in.read(readBuff);
                 System.out.println("Data: " + new String(readBuff));
             }
             in.close();
-            
+
         } catch (Exception ex) {
             Logger.getLogger(TestBlobStore.class.getName()).log(Level.SEVERE, null, ex);
         }
