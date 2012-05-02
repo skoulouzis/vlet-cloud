@@ -326,9 +326,15 @@ public class CloudFileSystem extends FileSystemNode {
 
         try {
 //            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
-            ListenableFuture<Long> res = asyncBlobStore.countBlobs(
-                    containerAndPath[0],
-                    Builder.inDirectory(containerAndPath[1]));
+            ListenableFuture<Long> res = null;
+            if (containerAndPath.length <= 1
+                    || StringUtil.isEmpty(containerAndPath[1])) {
+                res = asyncBlobStore.countBlobs(containerAndPath[0]);
+            } else {
+                res = asyncBlobStore.countBlobs(
+                        containerAndPath[0],
+                        Builder.inDirectory(containerAndPath[1]));
+            }
 
             return res.get();
 
@@ -475,7 +481,7 @@ public class CloudFileSystem extends FileSystemNode {
                     throw new ResourceException(ex.getMessage());
                 }
             }
-            
+
             if (meta != null) {
                 if (type == meta.getType()) {
                     return true;

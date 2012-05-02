@@ -13,61 +13,56 @@ import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.domain.Blob;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
-
+    
     private String provider;
     private Properties props;
     private String container;
     private String blobName;
 //    private BlobStoreContext blobContext;
     private File bufferFile;
-    private FileOutputStream fos;
+    private OutputStream out;
     static ClassLogger logger;
-
+    
     static {
         logger = ClassLogger.getLogger(CloudOutputStream.class);
         logger.setLevelToDebug();
     }
     private final AsyncBlobStore asyncBlobStore;
-
-//    public CloudOutputStream(String container, String blobName,
-//            String provider, Properties props) throws IOException {
-//        this.provider = provider;
-//        this.props = props;
-//        this.container = container;
-//        this.blobName = blobName;
-//
-//        bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
-//
-//        fos = new FileOutputStream(bufferFile);
-//    }
+    
     CloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore) throws IOException {
         this.container = container;
         this.blobName = blobName;
-
+        
         this.asyncBlobStore = asyncBlobStore;
-
+        
+        out = new ByteArrayOutputStream();
+        //        out = new FileOutputStream(bufferFile);
         bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
-        fos = new FileOutputStream(bufferFile);
     }
-
+    
     @Override
     public void write(final int b) throws IOException {
-        fos.write(b);
+        out.write(b);
     }
-
+    
     private void writeData() throws InterruptedException, ExecutionException {
         try {
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(container, blobName);
-
+            
             Blob blob = res.get();
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(blobName).build();
             }
-
-            blob.setPayload(bufferFile);
+            if (out instanceof ByteArrayOutputStream) {
+                blob.setPayload(((ByteArrayOutputStream) out).toByteArray());                
+            } else if (out instanceof FileOutputStream) {
+                blob.setPayload(bufferFile);                
+            }
             if (bufferFile.length() > (800 * 1024 * 1024)) {
                 asyncBlobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
             } else {
@@ -77,28 +72,28 @@ public class CloudOutputStream extends OutputStream {
             bufferFile.delete();
         }
     }
-
+    
     @Override
     public void write(final byte[] b, final int off, final int len)
             throws IOException {
-        fos.write(b, off, len);
+        out.write(b, off, len);
     }
-
+    
     @Override
     public void write(final byte[] b) throws IOException {
-        fos.write(b);
+        out.write(b);
     }
-
+    
     @Override
     public void flush() throws IOException {
-        fos.flush();
+        out.flush();
     }
-
+    
     @Override
     public void close() throws IOException {
-
-        fos.close();
-
+        
+        out.close();
+        
         try {
             writeData();
         } catch (InterruptedException e) {

@@ -259,7 +259,7 @@ public class testVFS extends VTestCase {
         // testRenameWithSpaces();
 //        testZCreateDirectoryWhileFileWithSameNameExists();
     }
-
+    
     /**
      * Exist is also a basic method used a lot in the unit tests and VRS
      * methods. <p>
@@ -2992,7 +2992,7 @@ public class testVFS extends VTestCase {
         byte[] randomData = new byte[1024 * 1024];//1MB
         Random r = new Random();
         OutputStream lfos = newFile.getOutputStream();
-        int count = 1;
+        int count = 50;
 
         long startTime = System.currentTimeMillis();
 
