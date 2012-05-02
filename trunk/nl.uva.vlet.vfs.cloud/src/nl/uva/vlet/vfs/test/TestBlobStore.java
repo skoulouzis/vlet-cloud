@@ -51,7 +51,7 @@ public class TestBlobStore {
 //            rm();
 //            writeData();
 //            exists(StorageType.BLOB);
-            getOutPutStream();
+//            getOutPutStream();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -327,7 +327,8 @@ public class TestBlobStore {
             String filePath2 = "/etc/passwd";
             File aLargeFile = new File(filePath2);
             InputStream ins = new FileInputStream(aLargeFile);
-                        blob.setPayload(ins);
+
+            blob.setPayload(ins);
 
             BlobStore blobstore = asyncBlobStore.getContext().getBlobStore();
             String sdd = blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
@@ -345,7 +346,5 @@ public class TestBlobStore {
         } catch (Exception ex) {
             Logger.getLogger(TestBlobStore.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-
     }
 }

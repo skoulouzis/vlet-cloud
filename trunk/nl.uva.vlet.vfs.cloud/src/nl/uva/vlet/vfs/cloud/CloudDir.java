@@ -8,13 +8,14 @@ import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VDir;
 import nl.uva.vlet.vfs.VFSNode;
 import nl.uva.vlet.vrl.VRL;
+import nl.uva.vlet.vrs.VNode;
 
 import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.blobstore.domain.StorageType;
 
 /**
- * 
- * 
+ *
+ *
  * @author S. Koulouzis
  */
 public class CloudDir extends VDir {// implements VUnixFileMode {
@@ -24,7 +25,6 @@ public class CloudDir extends VDir {// implements VUnixFileMode {
 
     static {
         logger = ClassLogger.getLogger(CloudDir.class);
-        logger.setLevelToDebug();
     }
 
     public CloudDir(CloudFileSystem vfsSystem, VRL dirVrl) {
@@ -46,7 +46,7 @@ public class CloudDir extends VDir {// implements VUnixFileMode {
     @Override
     public boolean delete(boolean recurse) throws VlException {
         try {
-            return cvfs.rm(getVRL(),StorageType.FOLDER);
+            return cvfs.rm(getVRL(), StorageType.FOLDER);
         } catch (InterruptedException e) {
             throw new VlException(e);
         } catch (ExecutionException e) {
@@ -91,7 +91,7 @@ public class CloudDir extends VDir {// implements VUnixFileMode {
         try {
             return cvfs.exists(vrl, StorageType.FOLDER);
         } catch (Exception e) {
-            if (e instanceof org.jclouds.blobstore.ContainerNotFoundException || e.getMessage().contains(org.jclouds.blobstore.ContainerNotFoundException.class.getName())  ) {
+            if (e instanceof org.jclouds.blobstore.ContainerNotFoundException || e.getMessage().contains(org.jclouds.blobstore.ContainerNotFoundException.class.getName())) {
                 return false;
             } else {
                 throw new nl.uva.vlet.exception.VlException(e);

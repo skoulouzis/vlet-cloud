@@ -78,7 +78,7 @@ public class testVFSCloud extends testVFS {
         Properties prop = getCloudProperties();
 
         info.setUsername(prop.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY));
-
+        
         info.setPassword(prop.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
         
         info.store();

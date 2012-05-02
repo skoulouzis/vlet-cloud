@@ -1,5 +1,6 @@
 package nl.uva.vlet.vfs.test;
 
+import java.io.File;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_EXISTS;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_HOSTNAME;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_LENGTH;
@@ -51,12 +52,12 @@ public class TestCloudFS {
 //            testLoc = new VRL(
 //                    "swift://149.156.10.131:8443/auth/v1.0/TEST_VRS_LOC");
 
-            // testLoc = new VRL(
-            // "swift://149.156.10.131:8443/auth/v1.0/TEST_VRS_LOC");
+             testLoc = new VRL(
+             "swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
 
 
-            testLoc = new VRL(
-                    "filesystem:/testBlobStoreVFS");
+//            testLoc = new VRL(
+//                    "filesystem:/testBlobStoreVFS");
         } catch (VRLSyntaxException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -107,6 +108,8 @@ public class TestCloudFS {
             // testFileAttributes();
 
             // testZCreateFileWhileDirectoryWithSameNameExists();
+            
+            measureUpload();
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -326,8 +329,8 @@ public class TestCloudFS {
 
         info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
 
-        info.setUsername("vph_dev:admin");
-        info.setPassword("secret");
+        info.setUsername("vphdemo:vphdemo");
+        info.setPassword("LibiDibi7");
         info.store();
 
         CloudFSFactory fsFactory = new CloudFSFactory();
@@ -457,6 +460,7 @@ public class TestCloudFS {
                 "After deletion, a file may NOT report it still 'exists'!",
                 newFile.exists());
     }
+    
     private static Object uniquepathnrMutex = new Object();
     private static int uniquepathnr = 0;
 
@@ -560,6 +564,7 @@ public class TestCloudFS {
 
         newDir.delete();
     }
+    
     private static final String TEST_CONTENTS = ">>> This is a testfile used for the VFS unit tests  <<<\n"
             + "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
             + "0123456789@#$%*()_+\n"
@@ -694,5 +699,13 @@ public class TestCloudFS {
         {
             newDir.delete();
         }
+    }
+
+    private static void measureUpload() throws VRLSyntaxException, InterruptedException, ExecutionException, VlException {
+        VDir dataset = VFSClient.getDefault().getDir("file:///"+System.getProperty("user.home")+"/Downloads/testData/dataset/");
+        long start = System.currentTimeMillis();
+        dataset.copyTo(getRemoteTestDir());
+        long end = System.currentTimeMillis();
+        System.out.println("Elapsed: "+(end-start) );
     }
 }

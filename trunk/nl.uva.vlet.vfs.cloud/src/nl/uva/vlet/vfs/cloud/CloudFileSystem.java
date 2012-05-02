@@ -38,7 +38,7 @@ import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import java.io.File;
+import java.io.*;
 import java.util.logging.Level;
 import nl.uva.vlet.Global;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
@@ -605,5 +605,41 @@ public class CloudFileSystem extends FileSystemNode {
                     containerAndPath[1] + "Exists");
         }
         //return new CloudDir(this, vrl);
+    }
+
+    void setContentsToFile(byte[] bytes, VRL vrl) throws VRLSyntaxException, VlException {
+        try {
+            String[] containerAndPath = getContainerAndPath(vrl);
+            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
+
+            Blob blob = res.get();
+            if (blob == null) {
+                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
+            }
+            blob.setPayload(bytes);
+            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+        } catch (InterruptedException ex) {
+            throw new VlException(ex);
+        } catch (ExecutionException ex) {
+            throw new VlException(ex);
+        }
+    }
+
+    void setContentsToFile(String contents, VRL vrl) throws VRLSyntaxException, VlException {
+        try {
+            String[] containerAndPath = getContainerAndPath(vrl);
+            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
+
+            Blob blob = res.get();
+            if (blob == null) {
+                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
+            }
+            blob.setPayload(contents);
+            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+        } catch (InterruptedException ex) {
+            throw new VlException(ex);
+        } catch (ExecutionException ex) {
+            throw new VlException(ex);
+        }
     }
 }
