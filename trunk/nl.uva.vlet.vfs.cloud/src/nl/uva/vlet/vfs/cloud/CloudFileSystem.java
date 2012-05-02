@@ -152,10 +152,8 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
 
-    private VFSNode getPath(VRL pathVrl) throws VlException,
-            InterruptedException, ExecutionException {
+    private VFSNode getPath(VRL pathVrl) throws VlException, InterruptedException, ExecutionException {
         // logger.debugPrintf("getPath():%s\n", pathVrl);
-
         String path = pathVrl.getPath();
         // normalize and make path absolute
         path = resolvePath(path);
@@ -176,7 +174,6 @@ public class CloudFileSystem extends FileSystemNode {
         VRL v = new VRL(path);
         // logger.debugPrintf("vrl queryPath():%s\n", v);
 
-
         // Maybe it's the root
         if (StringUtil.isEmpty(path) || StringUtil.equals(path, "/")) {
             return new CloudDir(this, pathVrl);
@@ -186,10 +183,7 @@ public class CloudFileSystem extends FileSystemNode {
         if (meta == null) {
             return null;
         }
-
-
         return getResourceType(meta.getType(), pathVrl);
-
     }
 
     private String getDefaultHome() {
@@ -221,13 +215,8 @@ public class CloudFileSystem extends FileSystemNode {
         return path.substring(prefixPath.length());
     }
 
-    protected StorageMetadata queryPath(VRL path) throws VRLSyntaxException,
-            InterruptedException, ExecutionException,
-            ResourceNotFoundException, CloudRequestTimeout {
+    protected StorageMetadata queryPath(VRL path) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceNotFoundException, CloudRequestTimeout {
         logger.debugPrintf("queryPath():%s\n", path);
-
-        //BlobStoreContext blobContext = getBlobStoreContext();
-
         try {
 
             logger.debugPrintf("list: %s\n", path);
@@ -235,12 +224,8 @@ public class CloudFileSystem extends FileSystemNode {
             String[] containerAndPath = getContainerAndPath(path);
 
             String container = containerAndPath[0];
-//            if (StringUtil.isEmpty(container)) {
-//                container = "/";
-//            }
-            String restOfThePath = containerAndPath[1];
 
-//            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
+            String restOfThePath = containerAndPath[1];
 
             // Check if we stat only the container
             if (StringUtil.isEmpty(restOfThePath)) {
@@ -250,11 +235,6 @@ public class CloudFileSystem extends FileSystemNode {
                 block(res);
 
                 if (res.get()) {
-                    // PageSet<? extends StorageMetadata> list = blobStore
-                    // .list(container);
-                    //
-                    // logger.debugPrintf("List of StorageMetadata size: %s\n",
-                    // list.size());
                     return new StorageMetadataImpl(StorageType.CONTAINER, null,
                             container, null, null, null, null,
                             new HashMap<String, String>());
@@ -264,7 +244,6 @@ public class CloudFileSystem extends FileSystemNode {
                 ListenableFuture<BlobMetadata> res = asyncBlobStore.blobMetadata(
                         container, restOfThePath);
                 block(res);
-
                 return res.get();
             }
 
@@ -302,7 +281,6 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public void connect() throws VlException {
-//        getAsyncBlobStore();
     }
 
     @Override
@@ -325,7 +303,6 @@ public class CloudFileSystem extends FileSystemNode {
         String[] containerAndPath = getContainerAndPath(vrl);
 
         try {
-//            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
             ListenableFuture<Long> res = null;
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
@@ -355,86 +332,6 @@ public class CloudFileSystem extends FileSystemNode {
         return new CloudDir(this, vrl);
     }
 
-//    protected VDir mkdir(VRL vrl, boolean ignoreExisting)
-//            throws VRLSyntaxException, InterruptedException,
-//            ExecutionException, ResourceException, CloudRequestTimeout {
-//
-//        //BlobStoreContext blobContext = getBlobStoreContext();
-//        Boolean exists;
-//        try {
-////            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
-//            ListenableFuture<Boolean> res;
-//
-//            String[] containerAndPath = getContainerAndPath(vrl);
-//            if (containerAndPath.length <= 1
-//                    || StringUtil.isEmpty(containerAndPath[1])) {
-//
-//                res = asyncBlobStore.containerExists(containerAndPath[0]);
-//
-//                block(res);
-//
-//                exists = res.get();
-//
-//                if (exists && !ignoreExisting) {
-//                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-//                            vrl + "Exists");
-//                } else if (exists) {
-//                    return new CloudDir(this, vrl);
-//                }
-//
-//                res = asyncBlobStore.createContainerInLocation(null,
-//                        containerAndPath[0]);
-//                Boolean created = res.get();
-//
-//                if (!created) {
-//                    throw new nl.uva.vlet.exception.ResourceCreationFailedException(
-//                            "Could not create " + vrl);
-//                }
-//            } else {
-//                try {
-//                    ListenableFuture<BlobMetadata> resMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-//
-//                    BlobMetadata meta = resMeta.get();
-//
-//                    // logger.debugPrintf(">>>>>>Type: %s \n", meta.getType());
-//
-//                    if (meta != null && meta.getType() == StorageType.BLOB) {
-//                        throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-//                                vrl + " already exists as a file");
-//                    }
-//                } catch (Exception ex) {
-//                    if (!ex.getMessage().contains("(Is a directory)")) {
-//                        if (ex instanceof ResourceAlreadyExistsException) {
-//                            throw ((ResourceAlreadyExistsException) ex);
-//                        }
-//                        throw new ResourceException(ex.getMessage());
-//                    }
-//                }
-//
-//                res = asyncBlobStore.directoryExists(containerAndPath[0],
-//                        containerAndPath[1]);
-//
-//                block(res);
-//
-//                exists = res.get();
-//                if (exists && !ignoreExisting) {
-//                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-//                            vrl + "Exists");
-//                }
-//                logger.debugPrintf("mkdir(%s/%s)\n", containerAndPath[0],
-//                        containerAndPath[1]);
-//
-//                ListenableFuture<Void> resCreate = asyncBlobStore.createDirectory(
-//                        containerAndPath[0], containerAndPath[1]);
-//                resCreate.get();
-//            }
-//
-//        } finally {
-//            //blobContext.close();
-//        }
-//
-//        return new CloudDir(this, vrl);
-//    }
     private void block(ListenableFuture<?> res) throws InterruptedException,
             CloudRequestTimeout {
         int waitTime = 1;
@@ -495,142 +392,6 @@ public class CloudFileSystem extends FileSystemNode {
         return false;
     }
 
-//    protected boolean exists(VRL vrl, StorageType type)
-//            throws VRLSyntaxException, InterruptedException,
-//            ExecutionException, CloudRequestTimeout, ResourceException {
-//        logger.debugPrintf("%s exists?\n", vrl);
-//        if (vrl.isRootPath()) {
-//            return true;
-//        }
-//        //BlobStoreContext blobContext = getBlobStoreContext();
-//        ListenableFuture<Boolean> res;
-//        String[] containerAndPath = getContainerAndPath(vrl);
-//
-//
-//            if (containerAndPath.length <= 1
-//                    || StringUtil.isEmpty(containerAndPath[1])) {
-//
-//                ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
-//
-//                block(resContainerExists);
-//
-//                // This waits for request to complete
-//                return resContainerExists.get();
-//                
-//            } else if (containerAndPath.length > 1
-//                    && type == StorageType.FOLDER
-//                    || type == StorageType.RELATIVE_PATH) {
-//
-//
-//                try {
-//                    ListenableFuture<BlobMetadata> resDirectoryMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-//
-//                    block(resDirectoryMeta);
-//
-//                    BlobMetadata meta = resDirectoryMeta.get();
-//                    if (meta != null) {
-//                        debug("Meta: " + meta.getType());
-//                    }
-//
-//                    if (resDirectoryMeta != null && meta != null) {
-//                        if (meta.getType() == StorageType.FOLDER
-//                                || meta.getType() == StorageType.RELATIVE_PATH) {
-//                            return true;
-//                        }
-//                    }
-//                } catch (Exception ex) {
-//                    if (!ex.getMessage().contains("(Is a directory)")) {
-//                        throw new ResourceException(ex.getMessage());
-//                    } else if (ex.getMessage().contains("(Is a directory)") && type != StorageType.BLOB) {
-//                        return true;
-//                    }
-//                }
-////                res = blobStore.directoryExists(containerAndPath[0], containerAndPath[1]);
-////                block(res);
-////                return res.get();
-//                return false;
-//
-//            } else if (type == StorageType.BLOB) {
-//                try {
-//                    ListenableFuture<BlobMetadata> resFileMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-//
-//                    block(resFileMeta);
-//
-//                    if (resFileMeta != null && resFileMeta.get() != null
-//                            && resFileMeta.get().getType() == StorageType.BLOB) {
-//                        return true;
-//                    }
-//                } catch (Exception ex) {
-//                    if (!ex.getMessage().contains("(Is a directory)")) {
-//                        throw new ResourceException(ex.getMessage());
-//                    }
-//                }
-//                return false;
-////                res = blobStore.directoryExists(containerAndPath[0], containerAndPath[1]);
-//
-////                block(res);
-//
-////                return res.get();
-//            }
-//        return false;
-//    }
-//    private BlobStoreContext getBlobStoreContext() {
-//        if (context == null) {
-//            this.context = new BlobStoreContextFactory().createContext(provider, props);
-//        }
-//        return context; //new BlobStoreContextFactory().createContext(provider, props);
-//    }
-//    public boolean rm(VRL vrl) throws VRLSyntaxException,
-//            InterruptedException, ExecutionException {
-//
-//        logger.debugPrintf("rm(%s) \n", vrl);
-//        //BlobStoreContext blobContext = getBlobStoreContext();
-//
-//        try {
-//
-//            String[] containerAndPath = getContainerAndPath(vrl);
-//
-////            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
-//
-//            if (containerAndPath.length <= 1
-//                    || StringUtil.isEmpty(containerAndPath[1])) {
-//
-//                logger.debugPrintf("deleteContainer(%s) \n",
-//                        containerAndPath[0]);
-//                ListenableFuture<Void> res = asyncBlobStore.deleteContainer(containerAndPath[0]);
-//
-//                // This waits for request to complete
-//                res.get();
-//                logger.debugPrintf("return true; \n");
-//                return true;
-//            } else if (containerAndPath.length > 1) {
-//                ListenableFuture<Boolean> res = asyncBlobStore.directoryExists(
-//                        containerAndPath[0], containerAndPath[1]);
-//                // This waits for request to complete
-//                if (res.get()) {
-//
-//                    ListenableFuture<Void> resDelete = asyncBlobStore.deleteDirectory(containerAndPath[0],
-//                            containerAndPath[1]);
-//                    // Block
-//                    resDelete.get();
-//
-//                    return true;
-//                }
-//                res = asyncBlobStore.blobExists(containerAndPath[0],
-//                        containerAndPath[1]);
-//                // This waits for request to complete
-//                if (res.get()) {
-//                    ListenableFuture<Void> resRemove = asyncBlobStore.removeBlob(
-//                            containerAndPath[0], containerAndPath[1]);
-//                    resRemove.get();
-//                    return true;
-//                }
-//            }
-//
-//        } finally {
-//        }
-//        return false;
-//    }
     public boolean rm(VRL vrl, StorageType type) throws VRLSyntaxException,
             InterruptedException, ExecutionException {
         String[] containerAndPath = getContainerAndPath(vrl);
@@ -748,7 +509,6 @@ public class CloudFileSystem extends FileSystemNode {
 
     public boolean touch(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException {
         String[] containerAndPath = getContainerAndPath(vrl);
-
         //Exists ?
         ListenableFuture<BlobMetadata> blobMeta = null;
         BlobMetadata meta = null;
@@ -785,67 +545,12 @@ public class CloudFileSystem extends FileSystemNode {
         return false;
     }
 
-//    public boolean touch(VRL vrl, boolean ignoreExisting)
-//            throws VRLSyntaxException, InterruptedException,
-//            ExecutionException, ResourceException {
-//        
-//        ListenableFuture<Boolean> resDirExists = null;
-//        try {
-//
-//            String[] containerAndPath = getContainerAndPath(vrl);
-//            
-//            ListenableFuture<Boolean> resBlobExists = asyncBlobStore.blobExists(
-//                    containerAndPath[0], containerAndPath[1]);
-//
-//            if (!ignoreExisting && resBlobExists.get()) {
-//                throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-//                        vrl + " already exists");
-//            } else if (resBlobExists.get()) {
-//
-//                resDirExists = asyncBlobStore.directoryExists(
-//                        containerAndPath[0], containerAndPath[1]);
-//                if (resDirExists.get()) {
-//                    throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-//                            vrl + " already exists as a folder");
-//                }
-//                return true;
-//            }
-//            if (resDirExists == null) {
-//                resDirExists = asyncBlobStore.directoryExists(
-//                        containerAndPath[0], containerAndPath[1]);
-//            }
-//
-//            if (resDirExists.get()) {
-//                throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
-//                        vrl + " already exists as a folder");
-//            }
-//
-//            Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).payload("").build();
-//
-//            ListenableFuture<String> res = asyncBlobStore.putBlob(
-//                    containerAndPath[0], blob);
-//
-//            res.get();
-//
-//            return true;
-//
-//        } finally {
-//            //blobContext.close();
-//        }
-//    }
     private void debug(String msg) {
-        System.err.println(this.getClass().getName() + ": " + msg);
-        System.out.println(this.getClass().getName() + ": " + msg);
+//        System.err.println(this.getClass().getName() + ": " + msg);
+//        System.out.println(this.getClass().getName() + ": " + msg);
         logger.debugPrintf(msg + "\n");
-        Global.debugPrintf(this, msg + "\n");
+//        Global.debugPrintf(this, msg + "\n");
     }
-//    private AsyncBlobStore getAsyncBlobStore() {
-//        BlobStoreContext blobStoraeContext = getBlobStoreContext();
-//        if (asyncBlobStore == null ) {
-//            this.asyncBlobStore = blobStoraeContext.getAsyncBlobStore();
-//        }
-//        return asyncBlobStore;
-//    }
 
     private void createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException {
         ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
@@ -889,14 +594,6 @@ public class CloudFileSystem extends FileSystemNode {
             createdDirRes.get();
             //return new CloudDir(this, vrl);
             return;
-//            } catch (Exception ex) {
-//                if (!ex.getMessage().contains("(Is a directory)")) {
-//                    if (ex instanceof ResourceAlreadyExistsException) {
-//                        throw ((ResourceAlreadyExistsException) ex);
-//                    }
-//                    throw new ResourceException(ex.getMessage());
-//                }
-//            }
         }
         //What is it?
         if (meta.getType() == StorageType.BLOB) {
