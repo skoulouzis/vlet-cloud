@@ -16,6 +16,7 @@ import org.jclouds.blobstore.domain.Blob;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import org.jclouds.blobstore.domain.BlobBuilder;
 import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
@@ -35,14 +36,17 @@ public class CloudOutputStream extends OutputStream {
     }
     private final AsyncBlobStore asyncBlobStore;
     private int bytesWriten = 0;
+    private final ListenableFuture<Blob> res;
 
     CloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore) throws IOException {
         this.container = container;
         this.blobName = blobName;
 
         this.asyncBlobStore = asyncBlobStore;
-
         out = new ByteArrayOutputStream();
+
+        //Get blob asynchronously
+        res = asyncBlobStore.getBlob(container, blobName);
     }
 
     @Override
@@ -58,21 +62,22 @@ public class CloudOutputStream extends OutputStream {
 
     private void writeData() throws InterruptedException, ExecutionException {
         try {
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(container, blobName);
-
+            //Get blob asynchronously
             Blob blob = res.get();
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(blobName).build();
             }
             if (out instanceof ByteArrayOutputStream) {
                 blob.setPayload(((ByteArrayOutputStream) out).toByteArray());
+                asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
             } else if (out instanceof FileOutputStream) {
                 blob.setPayload(bufferFile);
                 if (bufferFile.length() > (800 * 1024 * 1024)) {
                     asyncBlobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
+                } else {
+                    asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
                 }
             }
-            asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
         } finally {
             if (bufferFile != null) {
                 bufferFile.delete();
@@ -123,9 +128,6 @@ public class CloudOutputStream extends OutputStream {
 
 //        blobContext.close();
     }
-//    private BlobStoreContext getBlobStoreContext() {
-//        return new BlobStoreContextFactory().createContext(provider, props);
-//    }
 
     private void dumpTheArrayAndSwitchToFile() throws FileNotFoundException, IOException {
         if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
