@@ -14,26 +14,19 @@ import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.domain.Blob;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import org.jclouds.blobstore.domain.BlobBuilder;
 import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
 
-    private String provider;
-    private Properties props;
+//    private String provider;
+//    private Properties props;
     private String container;
     private String blobName;
 //    private BlobStoreContext blobContext;
     private File bufferFile;
     private OutputStream out;
-    static ClassLogger logger;
 
-    static {
-        logger = ClassLogger.getLogger(CloudOutputStream.class);
-        logger.setLevelToDebug();
-    }
     private final AsyncBlobStore asyncBlobStore;
     private int bytesWriten = 0;
     private final ListenableFuture<Blob> res;
@@ -60,7 +53,7 @@ public class CloudOutputStream extends OutputStream {
         }
     }
 
-    private void writeData() throws InterruptedException, ExecutionException {
+     private void writeData() throws InterruptedException, ExecutionException {
         try {
             //Get blob asynchronously
             Blob blob = res.get();
@@ -115,9 +108,7 @@ public class CloudOutputStream extends OutputStream {
 
     @Override
     public void close() throws IOException {
-
         out.close();
-
         try {
             writeData();
         } catch (InterruptedException e) {
@@ -125,7 +116,6 @@ public class CloudOutputStream extends OutputStream {
         } catch (ExecutionException e) {
             throw new IOException(e);
         }
-
 //        blobContext.close();
     }
 
@@ -133,11 +123,11 @@ public class CloudOutputStream extends OutputStream {
         if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
-
+            
             fos.write(((ByteArrayOutputStream) out).toByteArray());
             out.flush();
             out.close();
-
+            
             out = fos;
         }
     }
