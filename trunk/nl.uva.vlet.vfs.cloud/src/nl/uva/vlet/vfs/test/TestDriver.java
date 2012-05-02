@@ -136,7 +136,7 @@ public class TestDriver {
 
         VRS.getRegistry().addVRSDriverClass(
                 nl.uva.vlet.vfs.cloud.CloudFSFactory.class);
-        
+
         Global.init();
 
         VFSClient vfsClient = new VFSClient();
@@ -145,30 +145,37 @@ public class TestDriver {
         VRL vrl = new VRL("swift://149.156.10.131:8443/auth/v1.0/");
         ServerInfo info = context.getServerInfoFor(vrl, true);
 
-        
+
         info.setUsername("user");
         info.setPassword("passwd");
-        
+
         info.setAttribute(ServerInfo.ATTR_DEFAULT_YES_NO_ANSWER, true);
         info.store();
-        
-        
-        VDir testDir = vfsClient.createDir(vrl.append("deleteMe"),true);
+
+
+        VDir testDir = vfsClient.createDir(vrl.append("deleteMe"), true);
         long numOfNodes = testDir.getNrOfNodes();
-        
-        System.out.println("Num Of Nodes: "+numOfNodes);
+
+        System.out.println("Num Of Nodes: " + numOfNodes);
         VFile testFile = testDir.createFile("anotherTestFile");
-        
-        OutputStream out = testFile.getOutputStream();
-        byte[] b = new byte[1024*1024];
-        Random r = new Random();
-        r.nextBytes(b);
-        for(int i=0;i<10;i++){
-            out.write(b);
+
+        for (int k = 0; k < 10; k++) {
+            long start = System.currentTimeMillis();
+
+            OutputStream out = testFile.getOutputStream();
+//        byte[] b = "Some Large Data 123".getBytes();
+            byte[] b = new byte[1024 * 1024];
+            Random r = new Random();
+            r.nextBytes(b);
+            for (int i = 0; i < 10; i++) {
+                out.write(b);
+            }
+            out.flush();
+            out.close();
+            long end = System.currentTimeMillis();
+
+            System.out.println("Elapsed: " + (end - start));
+            //        System.out.println(testFile.getContentsAsString());
         }
-        out.flush();
-        out.close();
-        
-        
     }
 }
