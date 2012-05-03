@@ -6,9 +6,12 @@ package nl.uva.vlet.vfs.test;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
@@ -17,7 +20,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import nl.uva.vlet.data.StringUtil;
@@ -26,14 +32,19 @@ import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.SingleClientConnManager;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -55,6 +66,7 @@ import org.jclouds.io.payloads.BasePayload;
 import org.jclouds.io.payloads.FilePayload;
 import org.jclouds.io.payloads.StreamingPayload;
 import org.jclouds.rest.HttpClient;
+import sun.security.ssl.SSLSocketFactoryImpl;
 
 /**
  *
@@ -75,7 +87,10 @@ public class TestBlobStore {
 //            rm();
 //            writeData();
 //            exists(StorageType.BLOB);
-            getOutPutStream();
+//            getOutPutStream();
+//            login();
+
+            put();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -351,50 +366,46 @@ public class TestBlobStore {
             InputStream ins = new FileInputStream(aLargeFile);
             BlobStoreContext cont = asyncBlobStore.getContext();
 
-
-            HttpGet method = new HttpGet(endpoint);
-            method.getParams().setIntParameter("http.socket.timeout", 10000);
-            String uname = props.getProperty("jclouds.identity");
-            String key = props.getProperty("jclouds.credential");
-            method.setHeader("x-auth-user", uname);
-            method.setHeader("x-auth-key", key);
-            BasicHttpParams params = new BasicHttpParams();
-            org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
-            params.setParameter("http.socket.timeout", 10000);
-
-            org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
-            org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
-
-            HttpResponse resp = wrapClient1.execute(method);
-            StatusLine status = resp.getStatusLine();
-            System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
-
         } catch (Exception ex) {
             Logger.getLogger(TestBlobStore.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
+    private static void login() throws IOException {
+        HttpGet method = new HttpGet(endpoint);
+        method.getParams().setIntParameter("http.socket.timeout", 10000);
+        String uname = props.getProperty("jclouds.identity");
+        String key = props.getProperty("jclouds.credential");
+        method.setHeader("x-auth-user", uname);
+        method.setHeader("x-auth-key", key);
+        BasicHttpParams params = new BasicHttpParams();
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
+        params.setParameter("http.socket.timeout", 10000);
+
+        org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
+        org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
+
+        HttpResponse resp = wrapClient1.execute(method);
+        StatusLine status = resp.getStatusLine();
+        System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
+
+        Header[] allHeaders = resp.getAllHeaders();
+        for (Header h : allHeaders) {
+            System.out.println(h.getName() + " : " + h.getValue());
+            HeaderElement[] elem = h.getElements();
+            for (HeaderElement e : elem) {
+                System.out.println("\t" + e.getName() + " : " + e.getValue());
+            }
+        }
+        Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        String storageURL = storageURLHeader.getValue();
+        System.out.println("storageURL; " + storageURL);
+
+    }
+
     private static org.apache.http.client.HttpClient wrapClient1(org.apache.http.client.HttpClient base) {
         try {
-            SSLContext ctx = SSLContext.getInstance("TLS");
-            X509TrustManager tm = new X509TrustManager() {
-
-                @Override
-                public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
-                }
-
-                @Override
-                public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException {
-                }
-
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return null;
-                }
-            };
-            ctx.init(null, new TrustManager[]{tm}, null);
-            SSLSocketFactory ssf = new SSLSocketFactory(ctx);
-            ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            SSLSocketFactory ssf = getSSLSocketFactory();
             ClientConnectionManager ccm = base.getConnectionManager();
             SchemeRegistry sr = ccm.getSchemeRegistry();
             sr.register(new Scheme("https", ssf, 443));
@@ -402,5 +413,115 @@ public class TestBlobStore {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private static void put() throws IOException, Exception {
+        HttpGet get = new HttpGet(endpoint);
+        get.getParams().setIntParameter("http.socket.timeout", 10000);
+        String uname = props.getProperty("jclouds.identity");
+        String key = props.getProperty("jclouds.credential");
+        get.setHeader("x-auth-user", uname);
+        get.setHeader("x-auth-key", key);
+        BasicHttpParams params = new BasicHttpParams();
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
+        params.setParameter("http.socket.timeout", 10000);
+
+        org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
+        org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
+        HttpResponse resp = wrapClient1.execute(get);
+
+        Header[] allHeaders = resp.getAllHeaders();
+        for (Header h : allHeaders) {
+            System.out.println(h.getName() + " : " + h.getValue());
+            HeaderElement[] elem = h.getElements();
+            for (HeaderElement e : elem) {
+                System.out.println("\t" + e.getName() + " : " + e.getValue());
+            }
+        }
+
+        Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        String storageURL = storageURLHeader.getValue();
+        Header authTokenHeader = resp.getFirstHeader("X-Auth-Token");
+        String authToken = authTokenHeader.getValue();
+
+
+        String container = "deleteMe";
+        String putURL = storageURL + "/" + container + "/someFile";
+        HttpPut put = new HttpPut(putURL);
+        put.getParams().setIntParameter("http.socket.timeout", 10000);
+        put.setHeader("X-Auth-Token", authToken);
+
+        HttpEntity entity = new FileEntity(new File("/etc/passwd"), "text/plain");
+        put.setEntity(entity);
+        put.setHeader(entity.getContentType());
+
+
+        System.out.println("---------------PUT HEADERS---------------------");
+        allHeaders = put.getAllHeaders();
+        for (Header h : allHeaders) {
+            System.out.println(h.getName() + " : " + h.getValue());
+            HeaderElement[] elem = h.getElements();
+            for (HeaderElement e : elem) {
+                System.out.println("\t" + e.getName() + " : " + e.getValue());
+            }
+        }
+
+        URL url = new URL(putURL);
+        HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
+        SSLContext sc = getSSLContext();
+        con.setSSLSocketFactory(sc.getSocketFactory());
+        
+        con.setHostnameVerifier(new HostnameVerifier()
+        {      
+            @Override
+            public boolean verify(String hostname, SSLSession session)
+            {
+                System.out.println("Host name: "+hostname);
+                System.out.println("session: "+session.getCipherSuite());
+                System.out.println("session: "+session.getPeerHost());
+                System.out.println("session: "+session.getProtocol());
+                return true;
+            }
+        });
+        
+        con.setRequestProperty("X-Auth-Token",authToken);
+        con.setDoOutput(true);
+        OutputStream out = con.getOutputStream();
+        out.write("DATA".getBytes());
+        out.flush();
+        out.close();
+        con.disconnect();
+
+    }
+
+    private static SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
+
+
+        SSLContext ctx = getSSLContext();
+
+        SSLSocketFactory ssf = new SSLSocketFactory(ctx);
+        ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+        return ssf;
+    }
+
+    private static SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        X509TrustManager tm = new X509TrustManager() {
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+        };
+        ctx.init(null, new TrustManager[]{tm}, null);
+        return ctx;
     }
 }
