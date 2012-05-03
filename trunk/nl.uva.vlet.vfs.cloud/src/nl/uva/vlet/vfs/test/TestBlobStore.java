@@ -6,17 +6,38 @@ package nl.uva.vlet.vfs.test;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
+import java.net.URI;
+import java.net.URL;
+import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
 import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.SingleClientConnManager;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.BasicHttpParams;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
@@ -31,6 +52,7 @@ import org.jclouds.http.config.JavaUrlHttpCommandExecutorServiceModule;
 import org.jclouds.io.Payload;
 import org.jclouds.io.WriteTo;
 import org.jclouds.io.payloads.BasePayload;
+import org.jclouds.io.payloads.FilePayload;
 import org.jclouds.io.payloads.StreamingPayload;
 import org.jclouds.rest.HttpClient;
 
@@ -41,6 +63,8 @@ import org.jclouds.rest.HttpClient;
 public class TestBlobStore {
 
     private static AsyncBlobStore asyncBlobStore;
+    private static String endpoint;
+    private static Properties props;
 
     public static void main(String args[]) {
         try {
@@ -51,7 +75,7 @@ public class TestBlobStore {
 //            rm();
 //            writeData();
 //            exists(StorageType.BLOB);
-//            getOutPutStream();
+            getOutPutStream();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -220,16 +244,16 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        String provider = "filesystem";//"swift"; // "in-memory"
+        String provider = "swift"; // "in-memory" "filesystem";//
 //        Properties props = new Properties();
 
-        Properties props = getCloudProperties();
+        props = getCloudProperties();
 
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
         }
-//        String endpoint = "https://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS";
-//        props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
+        endpoint = "https://149.156.10.131:8443/auth/v1.0/";
+        props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
         props.setProperty(org.jclouds.Constants.PROPERTY_TRUST_ALL_CERTS,
                 "true");
         props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
@@ -320,31 +344,63 @@ public class TestBlobStore {
     private static void getOutPutStream() {
         try {
             String[] containerAndPath = new String[]{"testBlobStoreVFS", "nonExisting"};
-            Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
-            byte[] buf = new byte[5];
             //            ByteArrayInputStream ins = new ByteArrayInputStream("DATA".getBytes());
             String filePath1 = "/home/" + System.getProperty("user.home") + "/Documents/mails/thunderbird.mitsosl.uva.nl.tar.gz.gpg";
             String filePath2 = "/etc/passwd";
             File aLargeFile = new File(filePath2);
             InputStream ins = new FileInputStream(aLargeFile);
+            BlobStoreContext cont = asyncBlobStore.getContext();
 
-            blob.setPayload(ins);
 
-            BlobStore blobstore = asyncBlobStore.getContext().getBlobStore();
-            String sdd = blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+            HttpGet method = new HttpGet(endpoint);
+            method.getParams().setIntParameter("http.socket.timeout", 10000);
+            String uname = props.getProperty("jclouds.identity");
+            String key = props.getProperty("jclouds.credential");
+            method.setHeader("x-auth-user", uname);
+            method.setHeader("x-auth-key", key);
+            BasicHttpParams params = new BasicHttpParams();
+            org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
+            params.setParameter("http.socket.timeout", 10000);
 
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-            InputStream in = res.get().getPayload().getInput();
-            byte[] readBuff = new byte[3];
-            int b = 0;
-            while (b != -1) {
-                b = in.read(readBuff);
-                System.out.println("Data: " + new String(readBuff));
-            }
-            in.close();
+            org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
+            org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
+
+            HttpResponse resp = wrapClient1.execute(method);
+            StatusLine status = resp.getStatusLine();
+            System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
 
         } catch (Exception ex) {
             Logger.getLogger(TestBlobStore.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static org.apache.http.client.HttpClient wrapClient1(org.apache.http.client.HttpClient base) {
+        try {
+            SSLContext ctx = SSLContext.getInstance("TLS");
+            X509TrustManager tm = new X509TrustManager() {
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+            };
+            ctx.init(null, new TrustManager[]{tm}, null);
+            SSLSocketFactory ssf = new SSLSocketFactory(ctx);
+            ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            ClientConnectionManager ccm = base.getConnectionManager();
+            SchemeRegistry sr = ccm.getSchemeRegistry();
+            sr.register(new Scheme("https", ssf, 443));
+            return new DefaultHttpClient(ccm, base.getParams());
+        } catch (Exception ex) {
+            return null;
         }
     }
 }
