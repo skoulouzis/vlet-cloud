@@ -66,7 +66,6 @@ import org.jclouds.io.payloads.BasePayload;
 import org.jclouds.io.payloads.FilePayload;
 import org.jclouds.io.payloads.StreamingPayload;
 import org.jclouds.rest.HttpClient;
-import sun.security.ssl.SSLSocketFactoryImpl;
 
 /**
  *
