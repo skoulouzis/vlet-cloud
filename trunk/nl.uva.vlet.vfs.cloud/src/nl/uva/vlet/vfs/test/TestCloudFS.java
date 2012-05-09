@@ -116,6 +116,7 @@ public class TestCloudFS {
             e.printStackTrace();
         } finally {
             VRS.exit();
+            System.exit(0);
         }
 
     }
