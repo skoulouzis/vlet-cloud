@@ -31,6 +31,7 @@ import nl.uva.vlet.vfs.VFile;
 import nl.uva.vlet.vfs.VFileSystem;
 import nl.uva.vlet.vfs.cloud.CloudFSFactory;
 import nl.uva.vlet.vfs.cloud.CloudFileSystem;
+import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
 import nl.uva.vlet.vrs.VRS;
@@ -146,7 +147,7 @@ public class TestCloudFS {
     }
 
     private static void testGetOutStream() throws VRLSyntaxException,
-            IOException, InterruptedException, ExecutionException {
+            IOException, InterruptedException, ExecutionException, CloudRequestTimeout {
         VRL vrl = testLoc.append("/test_1/deleteMe/dir1/FILE1");
 
         OutputStream out = cloudFS.getOutputStream(vrl);
@@ -197,7 +198,7 @@ public class TestCloudFS {
     }
 
     private static void testGetInStream() throws VRLSyntaxException,
-            IOException, InterruptedException, ExecutionException {
+            IOException, InterruptedException, ExecutionException, CloudRequestTimeout {
         VRL vrl = testLoc.append("/test_3/deleteMe/dir1/FILE");
 
         InputStream ins = cloudFS.getInputStream(vrl);
@@ -219,7 +220,7 @@ public class TestCloudFS {
     }
 
     private static void testList() throws VRLSyntaxException,
-            InterruptedException, ExecutionException {
+            InterruptedException, ExecutionException, CloudRequestTimeout {
         // VRL vrl = testLoc.append("/test_2/newDir");
         VFSNode[] nodes = cloudFS.ls(testLoc);
         for (VFSNode n : nodes) {
@@ -255,7 +256,7 @@ public class TestCloudFS {
     }
 
     private static void testGetNrOfNodes() throws VRLSyntaxException,
-            InterruptedException, ExecutionException {
+            InterruptedException, ExecutionException, CloudRequestTimeout {
         long num = cloudFS.getNumOfNodes(testLoc.append("test_1"));
         logger.debugPrintf("%s  Num of nodes: %s\n", testLoc.append("test_1"),
                 num);

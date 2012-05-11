@@ -1,5 +1,7 @@
 package nl.uva.vlet.vfs.cloud;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -7,16 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.data.StringUtil;
-import nl.uva.vlet.exception.ResourceException;
-import nl.uva.vlet.exception.ResourceNotFoundException;
-import nl.uva.vlet.exception.VRLSyntaxException;
-import nl.uva.vlet.exception.VlException;
-import nl.uva.vlet.exception.VlInitializationException;
-import nl.uva.vlet.exception.VlPasswordException;
+import nl.uva.vlet.exception.*;
 import nl.uva.vlet.vfs.FileSystemNode;
 import nl.uva.vlet.vfs.VDir;
 import nl.uva.vlet.vfs.VFSNode;
@@ -25,25 +22,12 @@ import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
 import nl.uva.vlet.vrs.VRSContext;
-
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
-import org.jclouds.blobstore.domain.Blob;
-import org.jclouds.blobstore.domain.BlobMetadata;
-import org.jclouds.blobstore.domain.PageSet;
-import org.jclouds.blobstore.domain.StorageMetadata;
-import org.jclouds.blobstore.domain.StorageType;
+import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
-
-import com.google.common.util.concurrent.ListenableFuture;
-import java.io.*;
-import java.util.logging.Level;
-import nl.uva.vlet.Global;
-import nl.uva.vlet.exception.ResourceAlreadyExistsException;
-import nl.uva.vlet.exception.ResourceCreationFailedException;
-import nl.uva.vlet.exception.VlIOException;
 import org.jclouds.filesystem.reference.FilesystemConstants;
 
 /**
@@ -59,6 +43,7 @@ public class CloudFileSystem extends FileSystemNode {
     private Properties props;
     private String prefixPath = "/auth/v1.0";
     static ClassLogger logger;
+    private HashMap<VRL, CloudMetadataWrapper> cache = new HashMap<VRL, CloudMetadataWrapper>();
 
     {
         try {
@@ -70,6 +55,7 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
     private AsyncBlobStore asyncBlobStore;
+//    private boolean useCache = true;
 
     public CloudFileSystem(VRSContext context, ServerInfo info)
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException {
@@ -153,6 +139,7 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private VFSNode getPath(VRL pathVrl) throws VlException, InterruptedException, ExecutionException {
+        VFSNode node;
         // logger.debugPrintf("getPath():%s\n", pathVrl);
         String path = pathVrl.getPath();
         // normalize and make path absolute
@@ -176,14 +163,17 @@ public class CloudFileSystem extends FileSystemNode {
 
         // Maybe it's the root
         if (StringUtil.isEmpty(path) || StringUtil.equals(path, "/")) {
-            return new CloudDir(this, pathVrl);
+            node = new CloudDir(this, pathVrl);
+        } else {
+            StorageMetadata meta = queryPath(v);
+            if (meta == null) {
+                node = null;
+            } else {
+                getCache().put(pathVrl, new CloudMetadataWrapper(meta));
+                node = getResourceType(meta.getType(), pathVrl);
+            }
         }
-
-        StorageMetadata meta = queryPath(v);
-        if (meta == null) {
-            return null;
-        }
-        return getResourceType(meta.getType(), pathVrl);
+        return node;
     }
 
     private String getDefaultHome() {
@@ -217,8 +207,8 @@ public class CloudFileSystem extends FileSystemNode {
 
     protected StorageMetadata queryPath(VRL path) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceNotFoundException, CloudRequestTimeout {
         logger.debugPrintf("queryPath():%s\n", path);
+        StorageMetadata meta = null;
         try {
-
             logger.debugPrintf("list: %s\n", path);
 
             String[] containerAndPath = getContainerAndPath(path);
@@ -231,29 +221,30 @@ public class CloudFileSystem extends FileSystemNode {
             if (StringUtil.isEmpty(restOfThePath)) {
 
                 ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
-
                 block(res);
 
                 if (res.get()) {
-                    return new StorageMetadataImpl(StorageType.CONTAINER, null,
+
+                    meta = new StorageMetadataImpl(StorageType.CONTAINER, null,
                             container, null, null, null, null,
                             new HashMap<String, String>());
+
                 }
 
             } else {
                 ListenableFuture<BlobMetadata> res = asyncBlobStore.blobMetadata(
                         container, restOfThePath);
                 block(res);
-                return res.get();
+                meta = res.get();
             }
-
         } catch (org.jclouds.blobstore.ContainerNotFoundException e) {
             throw new nl.uva.vlet.exception.ResourceNotFoundException(path
                     + " not found. " + e.getMessage());
         } finally {
             //blobContext.close();
         }
-        return null;
+        getCache().put(path, new CloudMetadataWrapper(meta));
+        return meta;
     }
 
     private String[] getContainerAndPath(VRL path) throws VRLSyntaxException {
@@ -288,6 +279,7 @@ public class CloudFileSystem extends FileSystemNode {
 //        getBlobStoreContext().close();
         asyncBlobStore.getContext().close();
         asyncBlobStore = null;
+        getCache().clear();
     }
 
     @Override
@@ -295,13 +287,13 @@ public class CloudFileSystem extends FileSystemNode {
 //        getBlobStoreContext().close();
         asyncBlobStore.getContext().close();
         asyncBlobStore = null;
+        getCache().clear();
     }
 
     public long getNumOfNodes(VRL vrl) throws VRLSyntaxException,
-            InterruptedException, ExecutionException {
-        //BlobStoreContext blobContext = getBlobStoreContext();
+            InterruptedException, ExecutionException, CloudRequestTimeout {
+        long numOfNodes;
         String[] containerAndPath = getContainerAndPath(vrl);
-
         try {
             ListenableFuture<Long> res = null;
             if (containerAndPath.length <= 1
@@ -312,15 +304,22 @@ public class CloudFileSystem extends FileSystemNode {
                         containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
             }
-
-            return res.get();
+            block(res);
+            numOfNodes = res.get();
+            CloudMetadataWrapper cmw = getCache().get(vrl);
+            if (cmw == null) {
+                cmw = new CloudMetadataWrapper(null);
+            }
+            cmw.setNumOfNodes(numOfNodes);
+            getCache().put(vrl, cmw);
+            return numOfNodes;
 
         } finally {
             //blobContext.close();
         }
     }
 
-    protected VDir mkdir(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, ResourceException {
+    protected VDir mkdir(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, ResourceException, CloudRequestTimeout {
         String[] containerAndPath = getContainerAndPath(vrl);
         //Create container
         if (containerAndPath.length <= 1
@@ -329,6 +328,7 @@ public class CloudFileSystem extends FileSystemNode {
         } else {
             createFolder(containerAndPath, ignoreExisting);
         }
+        getCache().put(vrl, new CloudMetadataWrapper(null));
         return new CloudDir(this, vrl);
     }
 
@@ -348,61 +348,69 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
 
-    protected boolean exists(VRL vrl, StorageType type) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceException {
+    protected boolean exists(VRL vrl, StorageType type) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceException, CloudRequestTimeout {
+        boolean exists = false;
+        BlobMetadata meta = null;
         if (vrl.isRootPath()) {
-            return true;
-        }
-        String[] containerAndPath = getContainerAndPath(vrl);
+            exists = true;
+        } else {
+            String[] containerAndPath = getContainerAndPath(vrl);
 
-        if (containerAndPath.length <= 1
-                || StringUtil.isEmpty(containerAndPath[1])) {
+            if (containerAndPath.length <= 1
+                    || StringUtil.isEmpty(containerAndPath[1])) {
 
-            ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
-
-            // This waits for request to complete
-            return resContainerExists.get();
-
-        } else if (containerAndPath.length > 1) {
-            BlobMetadata meta = null;
-            try {
-                ListenableFuture<BlobMetadata> metaRes = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-                meta = metaRes.get();
-            } catch (Exception ex) {
-                if (ex.getMessage().contains("(Is a directory)")) {
-                    if (type != StorageType.BLOB) {
-                        return true;
+                ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
+                block(resContainerExists);
+                // This waits for request to complete
+                exists = resContainerExists.get();
+            } else if (containerAndPath.length > 1) {
+                try {
+                    ListenableFuture<BlobMetadata> metaRes = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+                    block(metaRes);
+                    meta = metaRes.get();
+                } catch (Exception ex) {
+                    if (ex.getMessage().contains("(Is a directory)")) {
+                        if (type != StorageType.BLOB) {
+                            exists = true;
+                        } else {
+                            exists = false;
+                        }
                     } else {
-                        return false;
+                        throw new ResourceException(ex.getMessage());
                     }
-                } else {
-                    throw new ResourceException(ex.getMessage());
                 }
-            }
 
-            if (meta != null) {
-                if (type == meta.getType()) {
-                    return true;
-                }
-                //We can have FOLDER or RELATIVE_PATH so it's easier to rule out it's not BLOB
-                if (type != StorageType.BLOB && meta.getType() != StorageType.BLOB) {
-                    return true;
+                if (meta != null) {
+                    if (type == meta.getType()) {
+                        exists = true;
+                    }
+                    //We can have FOLDER or RELATIVE_PATH so it's easier to rule out it's not BLOB
+                    if (type != StorageType.BLOB && meta.getType() != StorageType.BLOB) {
+                        exists = true;
+                    }
                 }
             }
         }
-        return false;
+        CloudMetadataWrapper cwm = getCache().get(vrl);
+        if (exists && cwm == null) {
+            getCache().put(vrl, new CloudMetadataWrapper(meta));
+        }
+        return exists;
     }
 
     public boolean rm(VRL vrl, StorageType type) throws VRLSyntaxException,
-            InterruptedException, ExecutionException {
+            InterruptedException, ExecutionException, CloudRequestTimeout {
+        boolean removed = false;
         String[] containerAndPath = getContainerAndPath(vrl);
 
         if (containerAndPath.length <= 1
                 || StringUtil.isEmpty(containerAndPath[1])) {
 
             ListenableFuture<Void> res = asyncBlobStore.deleteContainer(containerAndPath[0]);
+            block(res);
             // This waits for request to complete
             res.get();
-            return true;
+            removed = true;
         } else if (containerAndPath.length > 1) {
             ListenableFuture<Void> resRemove = null;
             if (type != StorageType.BLOB) {
@@ -410,15 +418,18 @@ public class CloudFileSystem extends FileSystemNode {
             } else {
                 resRemove = asyncBlobStore.removeBlob(containerAndPath[0], containerAndPath[1]);
             }
-
+            block(resRemove);
             resRemove.get();
-            return true;
+            removed = true;
         }
-        return false;
+        if (removed) {
+            getCache().remove(vrl);
+        }
+        return removed;
     }
 
     public VFSNode[] ls(VRL vrl) throws VRLSyntaxException,
-            InterruptedException, ExecutionException {
+            InterruptedException, ExecutionException, CloudRequestTimeout {
         //BlobStoreContext blobContext = getBlobStoreContext();
         VFSNode[] nodesArry = null;
         try {
@@ -426,39 +437,30 @@ public class CloudFileSystem extends FileSystemNode {
 
             ListenableFuture<PageSet<? extends StorageMetadata>> result;
 
-//            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
-
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
 
-                logger.debugPrintf(">>>list(%s).\n ", containerAndPath[0]);
+                logger.debugPrintf("list(%s).\n ", containerAndPath[0]);
 
                 result = asyncBlobStore.list(containerAndPath[0]);
 
-                // while (result.isDone()) {
-                // logger.debugPrintf(">>>ls(%s) not done.\n ", vrl);
-                // }
-
             } else {
-                logger.debugPrintf(">>>list(%s/%s).\n ", containerAndPath[0],
+                logger.debugPrintf("list(%s/%s).\n ", containerAndPath[0],
                         containerAndPath[1]);
                 result = asyncBlobStore.list(containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
 
-                // while (result.isDone()) {
-                // logger.debugPrintf(">>>ls(%s) not done.\n ", vrl);
-                // }
-
             }
 
             ArrayList<VFSNode> nodes = new ArrayList<VFSNode>();
-
+            block(result);
             PageSet<? extends StorageMetadata> list = result.get();
 
             for (StorageMetadata s : list) {
                 VRL nodeVRL = vrl.append(s.getName());
                 VFSNode node = getResourceType(s.getType(), nodeVRL);
                 nodes.add(node);
+                getCache().put(nodeVRL, new CloudMetadataWrapper(s));
             }
 
             nodesArry = new VFSNode[nodes.size()];
@@ -479,17 +481,14 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     public InputStream getInputStream(VRL vrl) throws VRLSyntaxException,
-            InterruptedException, ExecutionException {
-        //BlobStoreContext blobContext = getBlobStoreContext();
+            InterruptedException, ExecutionException, CloudRequestTimeout {
         try {
 
             String[] containerAndPath = getContainerAndPath(vrl);
 
-//            AsyncBlobStore blobStore = getAsyncBlobStore(); //AsyncBlobStore blobStore = blobContext.getAsyncBlobStore();
-
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0],
                     containerAndPath[1]);
-
+            block(res);
             Blob blob = res.get();
 
             return blob.getPayload().getInput();
@@ -507,13 +506,15 @@ public class CloudFileSystem extends FileSystemNode {
         return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
     }
 
-    public boolean touch(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException {
+    public boolean touch(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, CloudRequestTimeout {
+        boolean created = false;
         String[] containerAndPath = getContainerAndPath(vrl);
         //Exists ?
         ListenableFuture<BlobMetadata> blobMeta = null;
         BlobMetadata meta = null;
         try {
             blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+            block(blobMeta);
             meta = blobMeta.get();
         } catch (Exception ex) {
             if (ex.getMessage().contains("(Is a directory)")) {
@@ -527,22 +528,23 @@ public class CloudFileSystem extends FileSystemNode {
             Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
             blob.setPayload("");
             ListenableFuture<String> res = asyncBlobStore.putBlob(containerAndPath[0], blob);
-
+            block(res);
             res.get();
-
-            return true;
+            created = true;
+        } else {
+            //What is it?
+            if (meta.getType() != StorageType.BLOB) {
+                throw new ResourceAlreadyExistsException(
+                        vrl + " already exists as a folder");
+            } else if (meta.getType() == StorageType.BLOB && !ignoreExisting) {
+                throw new ResourceAlreadyExistsException(
+                        vrl + " already exists");
+            } else if (meta.getType() == StorageType.BLOB && ignoreExisting) {
+                created = true;
+            }
         }
-        //What is it?
-        if (meta.getType() != StorageType.BLOB) {
-            throw new ResourceAlreadyExistsException(
-                    vrl + " already exists as a folder");
-        } else if (meta.getType() == StorageType.BLOB && !ignoreExisting) {
-            throw new ResourceAlreadyExistsException(
-                    vrl + " already exists");
-        } else if (meta.getType() == StorageType.BLOB && ignoreExisting) {
-            return true;
-        }
-        return false;
+        getCache().put(vrl, new CloudMetadataWrapper(meta));
+        return created;
     }
 
     private void debug(String msg) {
@@ -552,33 +554,36 @@ public class CloudFileSystem extends FileSystemNode {
 //        Global.debugPrintf(this, msg + "\n");
     }
 
-    private void createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException {
+    private boolean createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, CloudRequestTimeout {
         ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
+        block(res);
         Boolean containerExists = res.get();
         if (containerExists && !ignoreExisting) {
             throw new ResourceAlreadyExistsException(
                     container + "Exists");
         } else if (containerExists) {
             //return new CloudDir(this, vrl);
-            return;
+            return true;
         }
         ListenableFuture<Boolean> createContainer = asyncBlobStore.createContainerInLocation(null,
                 container);
+        block(createContainer);
         Boolean created = createContainer.get();
-
+        
         if (!created) {
             throw new ResourceCreationFailedException(
                     "Could not create " + container);
         }
-        //return new CloudDir(this, vrl);
-        return;
+        //return new CloudDir(this, vrl);        
+        return true;
     }
 
-    private void createFolder(String[] containerAndPath, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceException {
+    private void createFolder(String[] containerAndPath, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceException, CloudRequestTimeout {
         //Exists ?
         BlobMetadata meta = null;
         try {
             ListenableFuture<BlobMetadata> blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+            block(blobMeta);
             meta = blobMeta.get();
         } catch (Exception ex) {
             if (ex.getMessage().contains("(Is a directory)") && !ignoreExisting) {
@@ -591,6 +596,7 @@ public class CloudFileSystem extends FileSystemNode {
             //Ok non existing
 //            try {
             ListenableFuture<Void> createdDirRes = asyncBlobStore.createDirectory(containerAndPath[0], containerAndPath[1]);
+            block(createdDirRes);
             createdDirRes.get();
             //return new CloudDir(this, vrl);
             return;
@@ -611,7 +617,7 @@ public class CloudFileSystem extends FileSystemNode {
         try {
             String[] containerAndPath = getContainerAndPath(vrl);
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-
+            block(res);
             Blob blob = res.get();
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
@@ -629,7 +635,7 @@ public class CloudFileSystem extends FileSystemNode {
         try {
             String[] containerAndPath = getContainerAndPath(vrl);
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-
+            block(res);
             Blob blob = res.get();
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
@@ -641,5 +647,16 @@ public class CloudFileSystem extends FileSystemNode {
         } catch (ExecutionException ex) {
             throw new VlException(ex);
         }
+    }
+
+    /**
+     * @return the cache
+     */
+    private HashMap<VRL, CloudMetadataWrapper> getCache() {
+//        if (useCache) {
+            return cache;
+//        } else {
+//            return null;
+//        }
     }
 }
