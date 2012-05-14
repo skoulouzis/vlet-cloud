@@ -490,7 +490,6 @@ public class TestBlobStore {
         out.flush();
         out.close();
         con.disconnect();
-
     }
 
     private static SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
