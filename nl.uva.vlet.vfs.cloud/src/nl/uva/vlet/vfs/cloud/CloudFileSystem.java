@@ -84,16 +84,34 @@ public class CloudFileSystem extends FileSystemNode {
 
         String username = info.getUsername();
         if (StringUtil.isEmpty(username)) {
-            throw new NullPointerException("Username is null!");
+            ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
+            for (ServerInfo i : moreInfo) {
+                username = i.getUsername();
+                if (!StringUtil.isEmpty(username)) {
+                    break;
+                }
+            }
+            if (StringUtil.isEmpty(username)) {
+                throw new NullPointerException("Username is null!");
+            }
         }
 
         debug("Username: " + username);
         String passwd = info.getPassword();
         debug("Password: " + passwd);
         if (StringUtil.isEmpty(passwd)) {
-            debug("password is empty!!!");
-            throw new nl.uva.vlet.exception.VlPasswordException(
-                    "Cloud service credential (password) is null");
+            ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
+            for (ServerInfo i : moreInfo) {
+                passwd = i.getPassword();
+                if (!StringUtil.isEmpty(passwd)) {
+                    break;
+                }
+            }
+            if (StringUtil.isEmpty(passwd)) {
+                debug("password is empty!!!");
+                throw new nl.uva.vlet.exception.VlPasswordException(
+                        "Cloud service credential (password) is null");
+            }
         }
 
         props.setProperty(org.jclouds.Constants.PROPERTY_IDENTITY, username);
@@ -569,7 +587,7 @@ public class CloudFileSystem extends FileSystemNode {
                 container);
         block(createContainer);
         Boolean created = createContainer.get();
-        
+
         if (!created) {
             throw new ResourceCreationFailedException(
                     "Could not create " + container);
@@ -654,7 +672,7 @@ public class CloudFileSystem extends FileSystemNode {
      */
     private HashMap<VRL, CloudMetadataWrapper> getCache() {
 //        if (useCache) {
-            return cache;
+        return cache;
 //        } else {
 //            return null;
 //        }
