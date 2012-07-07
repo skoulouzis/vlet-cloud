@@ -48,8 +48,8 @@ public class CloudFileSystem extends FileSystemNode {
     {
         try {
             logger = ClassLogger.getLogger(CloudFileSystem.class);
-            logger.setLevelToDebug();
-            logger.setLevel(Level.ALL);
+//            logger.setLevelToDebug();
+            logger.setLevel(Level.OFF);
         } catch (SecurityException ex) {
             Logger.getLogger(CloudFileSystem.class.getName()).log(Level.SEVERE, null, ex);
         }
