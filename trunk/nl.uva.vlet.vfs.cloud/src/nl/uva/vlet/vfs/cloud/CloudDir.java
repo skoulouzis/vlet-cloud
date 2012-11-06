@@ -2,14 +2,11 @@ package nl.uva.vlet.vfs.cloud;
 
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
-
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VDir;
 import nl.uva.vlet.vfs.VFSNode;
 import nl.uva.vlet.vrl.VRL;
-import nl.uva.vlet.vrs.VNode;
-
 import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.blobstore.domain.StorageType;
 

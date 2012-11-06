@@ -4,9 +4,10 @@
  */
 package nl.uva.vlet.vfs.test;
 
-import java.io.OutputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Properties;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,7 +27,7 @@ import nl.uva.vlet.vrs.VRS;
 import nl.uva.vlet.vrs.VRSContext;
 
 /**
- * 
+ *
  * @author S. Koulouzis
  */
 public class TestDriver {
@@ -78,9 +79,10 @@ public class TestDriver {
         VRL vrl = new VRL("swift://149.156.10.131:8443/auth/v1.0/");
         ServerInfo info = context.getServerInfoFor(vrl, true);
 
-        info.setUsername("vph_dev:admin");
+        Properties prop = getCloudProperties();
 
-        info.setPassword("passwd");
+        info.setUsername(prop.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY));
+        info.setPassword(prop.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
 
         info.setAttribute(ServerInfo.ATTR_DEFAULT_YES_NO_ANSWER, true);
         ServerInfo newOne = info.store();
@@ -145,9 +147,10 @@ public class TestDriver {
         VRL vrl = new VRL("swift://149.156.10.131:8443/auth/v1.0/");
         ServerInfo info = context.getServerInfoFor(vrl, true);
 
+        Properties prop = getCloudProperties();
 
-        info.setUsername("user");
-        info.setPassword("passwd");
+        info.setUsername(prop.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY));
+        info.setPassword(prop.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
 
         info.setAttribute(ServerInfo.ATTR_DEFAULT_YES_NO_ANSWER, true);
         info.store();
@@ -177,5 +180,17 @@ public class TestDriver {
             System.out.println("Elapsed: " + (end - start));
             //        System.out.println(testFile.getContentsAsString());
         }
+    }
+
+    private static Properties getCloudProperties()
+            throws FileNotFoundException, IOException {
+        Properties properties = new Properties();
+        String propPath = System.getProperty("user.home") + File.separator
+                + "workspace" + File.separator + "nl.uva.vlet.vfs.cloud"
+                + File.separator + "etc" + File.separator + "cloud.properties";
+        File f = new File(propPath);
+        properties.load(new FileInputStream(f));
+
+        return properties;
     }
 }

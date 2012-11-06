@@ -6,14 +6,12 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
-
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VChecksum;
 import nl.uva.vlet.vfs.VFile;
 import nl.uva.vlet.vfs.VFileSystem;
 import nl.uva.vlet.vrl.VRL;
-
 import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.blobstore.domain.StorageType;
