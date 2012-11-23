@@ -397,14 +397,16 @@ public class TestBlobStore {
             }
         }
         Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        Header authToken = resp.getFirstHeader("X-Auth-Token");
         String storageURL = storageURLHeader.getValue();
         System.out.println("storageURL; " + storageURL);
 
         //Not working. We get javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No subject alternative names present
-//        URL url = new URL(storageURL);
-//        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-//        connection.connect();
-//        System.out.println("getLocalPrincipal; " + connection.getLocalPrincipal().getName());
+        URL url = new URL(storageURL);
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.addRequestProperty(authToken.getName(), authToken.getValue());
+        connection.connect();
+        System.out.println("getLocalPrincipal; " + connection.getLocalPrincipal().getName());
         
 
     }

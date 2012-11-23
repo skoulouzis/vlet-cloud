@@ -1,3 +1,7 @@
 API from http://code.google.com/p/jclouds/wiki/BlobStore
 
+to test with cURL:
+curl -vk -H 'X-Storage-User: test:test' -H 'X-Storage-Pass: test' https://host:8443/auth/v1.0/
+ curl -k -H 'X-Auth-Token: <token from above>' <URL from above>
+
 
