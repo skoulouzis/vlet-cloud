@@ -5,33 +5,20 @@
 package nl.uva.vlet.vfs.test;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
 import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
-import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
@@ -40,17 +27,13 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.SingleClientConnManager;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
 import org.jclouds.blobstore.AsyncBlobStore;
-import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.blobstore.domain.Blob;
@@ -58,14 +41,13 @@ import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageType;
 import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.filesystem.reference.FilesystemConstants;
-import org.jclouds.http.HttpRequest;
-import org.jclouds.http.config.JavaUrlHttpCommandExecutorServiceModule;
-import org.jclouds.io.Payload;
-import org.jclouds.io.WriteTo;
-import org.jclouds.io.payloads.BasePayload;
-import org.jclouds.io.payloads.FilePayload;
-import org.jclouds.io.payloads.StreamingPayload;
-import org.jclouds.rest.HttpClient;
+
+import java.net.URL;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.io.*;
+import java.security.SecureRandom;
+import javax.net.ssl.*;
 
 /**
  *
@@ -370,11 +352,12 @@ public class TestBlobStore {
         }
     }
 
-    private static void login() throws IOException {
-        HttpGet method = new HttpGet(endpoint);
-        method.getParams().setIntParameter("http.socket.timeout", 10000);
+    private static void login() throws IOException, NoSuchAlgorithmException, KeyManagementException {
         String uname = props.getProperty("jclouds.identity");
         String key = props.getProperty("jclouds.credential");
+
+        HttpGet method = new HttpGet(endpoint);
+        method.getParams().setIntParameter("http.socket.timeout", 10000);
         method.setHeader("x-auth-user", uname);
         method.setHeader("x-auth-key", key);
         BasicHttpParams params = new BasicHttpParams();
@@ -402,12 +385,44 @@ public class TestBlobStore {
         System.out.println("storageURL; " + storageURL);
 
         //Not working. We get javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No subject alternative names present
-        URL url = new URL(storageURL);
+        final URL url = new URL(storageURL);
+
+        // configure the SSLContext with a TrustManager
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(new KeyManager[0], new TrustManager[]{new DefaultTrustManager()}, new SecureRandom());
+        SSLContext.setDefault(ctx);
+
+
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         connection.addRequestProperty(authToken.getName(), authToken.getValue());
-        connection.connect();
-        System.out.println("getLocalPrincipal; " + connection.getLocalPrincipal().getName());
-        
+//        SSLContext ssl = SSLContext.getInstance("TLSv1");
+//        ssl.init(null, new TrustManager[]{new SimpleX509TrustManager()}, null);
+//        javax.net.ssl.SSLSocketFactory factory = ssl.getSocketFactory();
+//        connection.setSSLSocketFactory(factory);
+        connection.setHostnameVerifier(new HostnameVerifier() {
+
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                System.out.println("hostname: " + hostname);
+                return true;
+            }
+        });
+
+        InputStream ins = connection.getInputStream();
+        InputStreamReader isr = new InputStreamReader(ins);
+        BufferedReader in = new BufferedReader(isr);
+
+        String inputLine;
+
+        while ((inputLine = in.readLine()) != null) {
+            System.out.println(inputLine);
+        }
+
+
+
+//        connection.connect();
+//        System.out.println("getLocalPrincipal; " + connection.getLocalPrincipal().getName());
+
 
     }
 
@@ -529,5 +544,47 @@ public class TestBlobStore {
         };
         ctx.init(null, new TrustManager[]{tm}, null);
         return ctx;
+    }
+
+    private static javax.net.ssl.SSLSocketFactory getJAvaXSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
+        SSLContext ctx = getSSLContext();
+        return ctx.getSocketFactory();
+    }
+
+    static class SimpleX509TrustManager implements X509TrustManager {
+
+        @Override
+        public void checkClientTrusted(
+                X509Certificate[] cert, String s)
+                throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(
+                X509Certificate[] cert, String s)
+                throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+    }
+
+    private static class DefaultTrustManager implements X509TrustManager {
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
     }
 }
