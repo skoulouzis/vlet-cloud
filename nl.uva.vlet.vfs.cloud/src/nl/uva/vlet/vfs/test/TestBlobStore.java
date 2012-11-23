@@ -87,9 +87,9 @@ public class TestBlobStore {
 //            writeData();
 //            exists(StorageType.BLOB);
 //            getOutPutStream();
-//            login();
+            login();
 
-            put();
+//            put();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -400,6 +400,13 @@ public class TestBlobStore {
         String storageURL = storageURLHeader.getValue();
         System.out.println("storageURL; " + storageURL);
 
+        //Not working. We get javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No subject alternative names present
+//        URL url = new URL(storageURL);
+//        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+//        connection.connect();
+//        System.out.println("getLocalPrincipal; " + connection.getLocalPrincipal().getName());
+        
+
     }
 
     private static org.apache.http.client.HttpClient wrapClient1(org.apache.http.client.HttpClient base) {
@@ -469,21 +476,20 @@ public class TestBlobStore {
         HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
         SSLContext sc = getSSLContext();
         con.setSSLSocketFactory(sc.getSocketFactory());
-        
-        con.setHostnameVerifier(new HostnameVerifier()
-        {      
+
+        con.setHostnameVerifier(new HostnameVerifier() {
+
             @Override
-            public boolean verify(String hostname, SSLSession session)
-            {
-                System.out.println("Host name: "+hostname);
-                System.out.println("session: "+session.getCipherSuite());
-                System.out.println("session: "+session.getPeerHost());
-                System.out.println("session: "+session.getProtocol());
+            public boolean verify(String hostname, SSLSession session) {
+                System.out.println("Host name: " + hostname);
+                System.out.println("session: " + session.getCipherSuite());
+                System.out.println("session: " + session.getPeerHost());
+                System.out.println("session: " + session.getProtocol());
                 return true;
             }
         });
-        
-        con.setRequestProperty("X-Auth-Token",authToken);
+
+        con.setRequestProperty("X-Auth-Token", authToken);
         con.setDoOutput(true);
         OutputStream out = con.getOutputStream();
         out.write("DATA".getBytes());
