@@ -48,6 +48,7 @@ import java.security.cert.X509Certificate;
 import java.io.*;
 import java.security.SecureRandom;
 import javax.net.ssl.*;
+import org.apache.http.message.BasicHeader;
 
 /**
  *
@@ -356,36 +357,36 @@ public class TestBlobStore {
         String uname = props.getProperty("jclouds.identity");
         String key = props.getProperty("jclouds.credential");
 
-        HttpGet method = new HttpGet(endpoint);
-        method.getParams().setIntParameter("http.socket.timeout", 10000);
-        method.setHeader("x-auth-user", uname);
-        method.setHeader("x-auth-key", key);
-        BasicHttpParams params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
-        params.setParameter("http.socket.timeout", 10000);
-
-        org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
-        org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
-
-        HttpResponse resp = wrapClient1.execute(method);
-        StatusLine status = resp.getStatusLine();
-        System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
-
-        Header[] allHeaders = resp.getAllHeaders();
-        for (Header h : allHeaders) {
-            System.out.println(h.getName() + " : " + h.getValue());
-            HeaderElement[] elem = h.getElements();
-            for (HeaderElement e : elem) {
-                System.out.println("\t" + e.getName() + " : " + e.getValue());
-            }
-        }
-        Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
-        Header authToken = resp.getFirstHeader("X-Auth-Token");
-        String storageURL = storageURLHeader.getValue();
-        System.out.println("storageURL; " + storageURL);
+//        HttpGet method = new HttpGet(endpoint);
+//        method.getParams().setIntParameter("http.socket.timeout", 10000);
+//        method.setHeader("x-auth-user", uname);
+//        method.setHeader("x-auth-key", key);
+//        BasicHttpParams params = new BasicHttpParams();
+//        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
+//        params.setParameter("http.socket.timeout", 10000);
+//
+//        org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
+//        org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
+//
+//        HttpResponse resp = wrapClient1.execute(method);
+//        StatusLine status = resp.getStatusLine();
+//        System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
+//
+//        Header[] allHeaders = resp.getAllHeaders();
+//        for (Header h : allHeaders) {
+//            System.out.println(h.getName() + " : " + h.getValue());
+//            HeaderElement[] elem = h.getElements();
+//            for (HeaderElement e : elem) {
+//                System.out.println("\t" + e.getName() + " : " + e.getValue());
+//            }
+//        }
+//        Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+//        Header authToken = resp.getFirstHeader("X-Auth-Token");
+//        String storageURL = storageURLHeader.getValue();
+//        System.out.println("storageURL; " + storageURL);
 
         //Not working. We get javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No subject alternative names present
-        final URL url = new URL(storageURL);
+        final URL url = new URL(endpoint);
 
         // configure the SSLContext with a TrustManager
         SSLContext ctx = SSLContext.getInstance("TLS");
@@ -393,13 +394,16 @@ public class TestBlobStore {
         SSLContext.setDefault(ctx);
 
 
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        connection.addRequestProperty(authToken.getName(), authToken.getValue());
-//        SSLContext ssl = SSLContext.getInstance("TLSv1");
-//        ssl.init(null, new TrustManager[]{new SimpleX509TrustManager()}, null);
-//        javax.net.ssl.SSLSocketFactory factory = ssl.getSocketFactory();
-//        connection.setSSLSocketFactory(factory);
-        connection.setHostnameVerifier(new HostnameVerifier() {
+        HttpsURLConnection authConnection = (HttpsURLConnection) url.openConnection();
+
+        authConnection.addRequestProperty("X-Storage-User", uname);
+        authConnection.addRequestProperty("X-Storage-Pass", key);
+
+        SSLContext ssl = SSLContext.getInstance("TLSv1");
+        ssl.init(null, new TrustManager[]{new SimpleX509TrustManager()}, null);
+        javax.net.ssl.SSLSocketFactory factory = ssl.getSocketFactory();
+        authConnection.setSSLSocketFactory(factory);
+        authConnection.setHostnameVerifier(new HostnameVerifier() {
 
             @Override
             public boolean verify(String hostname, SSLSession session) {
@@ -408,21 +412,56 @@ public class TestBlobStore {
             }
         });
 
-        InputStream ins = connection.getInputStream();
-        InputStreamReader isr = new InputStreamReader(ins);
-        BufferedReader in = new BufferedReader(isr);
 
+        System.out.println("H0 " + authConnection.getHeaderField(0));
+        System.out.println("H1 " + authConnection.getHeaderField(1));
+        System.out.println("H2 " + authConnection.getHeaderField(2));
+        System.out.println("H3 " + authConnection.getHeaderField(3));
+        System.out.println("H4 " + authConnection.getHeaderField(4));
+        System.out.println("H5 " + authConnection.getHeaderField(5));
+        System.out.println("H6 " + authConnection.getHeaderField(6));
+        authConnection.disconnect();
+
+        URL storageUrl = new URL(authConnection.getHeaderField(1));
+        HttpsURLConnection storageConnection = (HttpsURLConnection) storageUrl.openConnection();
+
+//        storageConnection.addRequestProperty("GET", "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/ HTTP/1.1");
+//        storageConnection.addRequestProperty("User-Agent", "curl/7.22.0 (i686-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3");
+//        storageConnection.addRequestProperty("Host", "149.156.10.131:8443");
+        storageConnection.addRequestProperty("Accept", "*/*");
+        storageConnection.addRequestProperty("X-Auth-Token", authConnection.getHeaderField(2));
+
+
+
+        storageConnection.setSSLSocketFactory(factory);
+        storageConnection.setHostnameVerifier(new HostnameVerifier() {
+
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                System.out.println("hostname: " + hostname);
+                return true;
+            }
+        });
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(
+                storageConnection.getInputStream()));
         String inputLine;
-
         while ((inputLine = in.readLine()) != null) {
             System.out.println(inputLine);
         }
+        in.close();
 
-
-
-//        connection.connect();
-//        System.out.println("getLocalPrincipal; " + connection.getLocalPrincipal().getName());
-
+//        System.out.println("H0 " + storageConnection.getHeaderField(0));
+//        System.out.println("H1 " + storageConnection.getHeaderField(1));
+//        System.out.println("H2 " + storageConnection.getHeaderField(2));
+//        System.out.println("H3 " + storageConnection.getHeaderField(3));
+//        System.out.println("H4 " + storageConnection.getHeaderField(4));
+//        System.out.println("H5 " + storageConnection.getHeaderField(5));
+//        System.out.println("H6 " + storageConnection.getHeaderField(6));
+//        System.out.println("H7 " + storageConnection.getHeaderField(7));
+//        System.out.println("H8 " + storageConnection.getHeaderField(8));
+//        System.out.println("H9 " + storageConnection.getHeaderField(9));
+//        System.out.println("H10 " + storageConnection.getHeaderField(10));
 
     }
 
@@ -549,6 +588,8 @@ public class TestBlobStore {
     private static javax.net.ssl.SSLSocketFactory getJAvaXSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = getSSLContext();
         return ctx.getSocketFactory();
+
+
     }
 
     static class SimpleX509TrustManager implements X509TrustManager {
