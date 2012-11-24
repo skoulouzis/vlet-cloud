@@ -422,17 +422,23 @@ public class TestBlobStore {
         System.out.println("H6 " + authConnection.getHeaderField(6));
         authConnection.disconnect();
 
-        URL storageUrl = new URL(authConnection.getHeaderField(1));
+        URL storageUrl = new URL(authConnection.getHeaderField(1) + "/LOBCDER-REPLICA-v2.0/data");
         HttpsURLConnection storageConnection = (HttpsURLConnection) storageUrl.openConnection();
+        storageConnection.setDoOutput(true);
+        storageConnection.setDoInput(true);
 
-//        storageConnection.addRequestProperty("GET", "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/ HTTP/1.1");
-//        storageConnection.addRequestProperty("User-Agent", "curl/7.22.0 (i686-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3");
-//        storageConnection.addRequestProperty("Host", "149.156.10.131:8443");
+        storageConnection.setDoOutput(true);
+        storageConnection.setDoInput(true);
+
+
+        storageConnection.addRequestProperty("PUT", "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/LOBCDER-REPLICA-v2.0/DATAAAA HTTP/1.1");
+        storageConnection.addRequestProperty("User-Agent", "curl/7.22.0 (i686-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3");
+        storageConnection.addRequestProperty("Host", "149.156.10.131:8443");
+        storageConnection.addRequestProperty("X-Auth-Token", authConnection.getHeaderField(2));
+        storageConnection.addRequestProperty("Content-Length", "10");
+        storageConnection.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
         storageConnection.addRequestProperty("Accept", "*/*");
         storageConnection.addRequestProperty("X-Auth-Token", authConnection.getHeaderField(2));
-
-
-
         storageConnection.setSSLSocketFactory(factory);
         storageConnection.setHostnameVerifier(new HostnameVerifier() {
 
@@ -443,25 +449,19 @@ public class TestBlobStore {
             }
         });
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(
-                storageConnection.getInputStream()));
-        String inputLine;
-        while ((inputLine = in.readLine()) != null) {
-            System.out.println(inputLine);
+        OutputStreamWriter wr = new OutputStreamWriter(storageConnection.getOutputStream());
+        wr.write("DATAAAA");
+        wr.flush();
+        // Get the response 
+        BufferedReader rd = new BufferedReader(new InputStreamReader(storageConnection.getInputStream()));
+        String line;
+        while ((line = rd.readLine()) != null) {
+            System.out.println("line: " + line);
         }
-        in.close();
+        wr.close();
+        rd.close();
 
-//        System.out.println("H0 " + storageConnection.getHeaderField(0));
-//        System.out.println("H1 " + storageConnection.getHeaderField(1));
-//        System.out.println("H2 " + storageConnection.getHeaderField(2));
-//        System.out.println("H3 " + storageConnection.getHeaderField(3));
-//        System.out.println("H4 " + storageConnection.getHeaderField(4));
-//        System.out.println("H5 " + storageConnection.getHeaderField(5));
-//        System.out.println("H6 " + storageConnection.getHeaderField(6));
-//        System.out.println("H7 " + storageConnection.getHeaderField(7));
-//        System.out.println("H8 " + storageConnection.getHeaderField(8));
-//        System.out.println("H9 " + storageConnection.getHeaderField(9));
-//        System.out.println("H10 " + storageConnection.getHeaderField(10));
+
 
     }
 
