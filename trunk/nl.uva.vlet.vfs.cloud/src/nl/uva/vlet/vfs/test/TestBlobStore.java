@@ -70,9 +70,9 @@ public class TestBlobStore {
 //            writeData();
 //            exists(StorageType.BLOB);
 //            getOutPutStream();
-            login();
+//            login();
 
-//            put();
+            put();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -501,6 +501,13 @@ public class TestBlobStore {
             }
         }
 
+        InputStream instream = resp.getEntity().getContent();
+
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(instream));
+        // do something useful with the response
+        System.out.println(reader.readLine());
+
         Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
         String storageURL = storageURLHeader.getValue();
         Header authTokenHeader = resp.getFirstHeader("X-Auth-Token");
@@ -512,6 +519,12 @@ public class TestBlobStore {
         HttpPut put = new HttpPut(putURL);
         put.getParams().setIntParameter("http.socket.timeout", 10000);
         put.setHeader("X-Auth-Token", authToken);
+//        put.setHeader("PUT" , "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/"+container+"/someFile HTTP/1.1");
+        put.setHeader("Accept", "*/*");
+//        put.setHeader("Content-Length", "29");
+//        put.setHeader("Content-Type","application/x-www-form-urlencoded");
+        put.setHeader(authTokenHeader);
+
 
         HttpEntity entity = new FileEntity(new File("/etc/passwd"), "text/plain");
         put.setEntity(entity);
@@ -528,30 +541,7 @@ public class TestBlobStore {
             }
         }
 
-        URL url = new URL(putURL);
-        HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
-        SSLContext sc = getSSLContext();
-        con.setSSLSocketFactory(sc.getSocketFactory());
-
-        con.setHostnameVerifier(new HostnameVerifier() {
-
-            @Override
-            public boolean verify(String hostname, SSLSession session) {
-                System.out.println("Host name: " + hostname);
-                System.out.println("session: " + session.getCipherSuite());
-                System.out.println("session: " + session.getPeerHost());
-                System.out.println("session: " + session.getProtocol());
-                return true;
-            }
-        });
-
-        con.setRequestProperty("X-Auth-Token", authToken);
-        con.setDoOutput(true);
-        OutputStream out = con.getOutputStream();
-        out.write("DATA".getBytes());
-        out.flush();
-        out.close();
-        con.disconnect();
+        wrapClient1.execute(put);
     }
 
     private static SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
