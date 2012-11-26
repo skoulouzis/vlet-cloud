@@ -46,6 +46,7 @@ import java.net.URL;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.security.SecureRandom;
 import javax.net.ssl.*;
 import org.apache.http.client.HttpClient;
@@ -70,10 +71,10 @@ public class TestBlobStore {
 //            rm();
 //            writeData();
 //            exists(StorageType.BLOB);
-//            getOutPutStream();
+            getOutPutStream();
 //            login();
 
-            put();
+//            put();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -339,19 +340,79 @@ public class TestBlobStore {
         //return new CloudDir(this, vrl);
     }
 
-    private static void getOutPutStream() {
-        try {
-            String[] containerAndPath = new String[]{"testBlobStoreVFS", "nonExisting"};
-            //            ByteArrayInputStream ins = new ByteArrayInputStream("DATA".getBytes());
-            String filePath1 = "/home/" + System.getProperty("user.home") + "/Documents/mails/thunderbird.mitsosl.uva.nl.tar.gz.gpg";
-            String filePath2 = "/etc/passwd";
-            File aLargeFile = new File(filePath2);
-            InputStream ins = new FileInputStream(aLargeFile);
-            BlobStoreContext cont = asyncBlobStore.getContext();
+    private static void getOutPutStream() throws MalformedURLException, NoSuchAlgorithmException, KeyManagementException, IOException {
+        final URL url = new URL(endpoint);
 
-        } catch (Exception ex) {
-            Logger.getLogger(TestBlobStore.class.getName()).log(Level.SEVERE, null, ex);
+        // configure the SSLContext with a TrustManager
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(new KeyManager[0], new TrustManager[]{new DefaultTrustManager()}, new SecureRandom());
+        SSLContext.setDefault(ctx);
+
+
+        HttpsURLConnection authConnection = (HttpsURLConnection) url.openConnection();
+
+        String uname = props.getProperty("jclouds.identity");
+        String key = props.getProperty("jclouds.credential");
+        authConnection.addRequestProperty("X-Storage-User", uname);
+        authConnection.addRequestProperty("X-Storage-Pass", key);
+
+        SSLContext ssl = SSLContext.getInstance("TLSv1");
+        ssl.init(null, new TrustManager[]{new SimpleX509TrustManager()}, null);
+        javax.net.ssl.SSLSocketFactory factory = ssl.getSocketFactory();
+        authConnection.setSSLSocketFactory(factory);
+        authConnection.setHostnameVerifier(new HostnameVerifier() {
+
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                System.out.println("hostname: " + hostname);
+                return true;
+            }
+        });
+
+
+        System.out.println("H0 " + authConnection.getHeaderField(0));
+        System.out.println("H1 " + authConnection.getHeaderField(1));
+        System.out.println("H2 " + authConnection.getHeaderField(2));
+        System.out.println("H3 " + authConnection.getHeaderField(3));
+        System.out.println("H4 " + authConnection.getHeaderField(4));
+        System.out.println("H5 " + authConnection.getHeaderField(5));
+        System.out.println("H6 " + authConnection.getHeaderField(6));
+        authConnection.disconnect();
+
+
+
+        URL storageUrl = new URL(authConnection.getHeaderField(1) + "/deleteMe/someFile");
+        HttpsURLConnection storageConnection = (HttpsURLConnection) storageUrl.openConnection();
+        storageConnection.setDoOutput(true);
+        storageConnection.setDoInput(true);
+
+        storageConnection.setRequestMethod("POST");
+//        storageConnection.addRequestProperty("User-Agent", "curl/7.22.0 (i686-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3");
+//        storageConnection.addRequestProperty("Host", "149.156.10.131:8443");
+        storageConnection.addRequestProperty("X-Auth-Token", authConnection.getHeaderField(2));
+        storageConnection.addRequestProperty("Accept", "*/*");
+        storageConnection.setSSLSocketFactory(factory);
+        storageConnection.setHostnameVerifier(new HostnameVerifier() {
+
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                System.out.println("hostname: " + hostname);
+                return true;
+            }
+        });
+
+        
+        OutputStreamWriter wr = new OutputStreamWriter(storageConnection.getOutputStream());
+        wr.write("DATAAAAsssssssssssssssssss");
+        wr.flush();
+        // Get the response 
+        BufferedReader rd = new BufferedReader(new InputStreamReader(storageConnection.getInputStream()));
+        String line;
+        while ((line = rd.readLine()) != null) {
+            System.out.println("line: " + line);
         }
+        wr.close();
+        rd.close();
     }
 
     private static void login() throws IOException, NoSuchAlgorithmException, KeyManagementException {
@@ -551,7 +612,7 @@ public class TestBlobStore {
         put.setHeader("X-Auth-Token", authToken);
         put.setHeader("Accept", "*/*");
         put.setHeader(authTokenHeader);
-        
+
         FileEntity entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
         put.setEntity(entity);
         put.setHeader(entity.getContentType());
