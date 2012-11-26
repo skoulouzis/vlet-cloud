@@ -48,6 +48,7 @@ import java.security.cert.X509Certificate;
 import java.io.*;
 import java.security.SecureRandom;
 import javax.net.ssl.*;
+import org.apache.http.client.HttpClient;
 import org.apache.http.message.BasicHeader;
 
 /**
@@ -501,12 +502,41 @@ public class TestBlobStore {
             }
         }
 
-        InputStream instream = resp.getEntity().getContent();
 
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(instream));
-        // do something useful with the response
-        System.out.println(reader.readLine());
+
+        if (resp.getEntity() != null) {
+            InputStream instream = resp.getEntity().getContent();
+            try {
+
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(instream));
+                // do something useful with the response
+                System.out.println(reader.readLine());
+
+            } catch (IOException ex) {
+
+                // In case of an IOException the connection will be released
+                // back to the connection manager automatically
+                throw ex;
+
+            } catch (RuntimeException ex) {
+
+                // In case of an unexpected exception you may want to abort
+                // the HTTP request in order to shut down the underlying
+                // connection and release it back to the connection manager.
+                get.abort();
+                throw ex;
+
+            } finally {
+                // Closing the input stream will trigger connection release
+                instream.close();
+
+                // When HttpClient instance is no longer needed,
+                // shut down the connection manager to ensure
+                // immediate deallocation of all system resources
+                wrapClient1.getConnectionManager().shutdown();
+            }
+        }
 
         Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
         String storageURL = storageURLHeader.getValue();
@@ -515,24 +545,42 @@ public class TestBlobStore {
 
 
         String container = "deleteMe";
-        String putURL = storageURL + "/" + container + "/someFile";
+        String putURL = storageURL + "/" + container + "/someFile/_part1";
         HttpPut put = new HttpPut(putURL);
         put.getParams().setIntParameter("http.socket.timeout", 10000);
         put.setHeader("X-Auth-Token", authToken);
-//        put.setHeader("PUT" , "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/"+container+"/someFile HTTP/1.1");
         put.setHeader("Accept", "*/*");
-//        put.setHeader("Content-Length", "29");
-//        put.setHeader("Content-Type","application/x-www-form-urlencoded");
         put.setHeader(authTokenHeader);
-
-
-        HttpEntity entity = new FileEntity(new File("/etc/passwd"), "text/plain");
+        
+        FileEntity entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
         put.setEntity(entity);
         put.setHeader(entity.getContentType());
 
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
 
-        System.out.println("---------------PUT HEADERS---------------------");
-        allHeaders = put.getAllHeaders();
+
+        resp = wrapClient1.execute(put);
+        InputStream instream = resp.getEntity().getContent();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(instream));
+        // do something useful with the response
+        System.out.println("Responce:---- " + reader.readLine());
+
+
+
+        putURL = storageURL + "/" + container + "/someFile/_part2";
+        put = new HttpPut(putURL);
+        put.getParams().setIntParameter("http.socket.timeout", 10000);
+        put.setHeader("X-Auth-Token", authToken);
+        put.setHeader("Accept", "*/*");
+        put.setHeader(authTokenHeader);
+
+
+        entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
+        put.setEntity(entity);
+        put.setHeader(entity.getContentType());
+
+        allHeaders = resp.getAllHeaders();
         for (Header h : allHeaders) {
             System.out.println(h.getName() + " : " + h.getValue());
             HeaderElement[] elem = h.getElements();
@@ -541,7 +589,31 @@ public class TestBlobStore {
             }
         }
 
-        wrapClient1.execute(put);
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
+        resp = wrapClient1.execute(put);
+        instream = resp.getEntity().getContent();
+        reader = new BufferedReader(new InputStreamReader(instream));
+        // do something useful with the response
+        System.out.println("Responce:---- " + reader.readLine());
+
+
+
+        putURL = storageURL + "/" + container + "/someFile";
+        put = new HttpPut(putURL);
+        put.setHeader("X-Object-Manifest", container + "/someFile");
+        put.setHeader(authTokenHeader);
+
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
+
+        resp = wrapClient1.execute(put);
+        instream = resp.getEntity().getContent();
+        reader = new BufferedReader(new InputStreamReader(instream));
+        // do something useful with the response
+        System.out.println("Responce:---- " + reader.readLine());
+
+
     }
 
     private static SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
