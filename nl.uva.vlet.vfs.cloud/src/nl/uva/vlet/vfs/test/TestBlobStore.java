@@ -74,7 +74,7 @@ public class TestBlobStore {
             getOutPutStream();
 //            login();
 
-//            put();
+            put();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -243,7 +243,7 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        String provider = "swift"; // "in-memory" "filesystem";//
+        String provider = "filesystem";//"swift"; // "in-memory" "filesystem";//
 //        Properties props = new Properties();
 
         props = getCloudProperties();
@@ -419,35 +419,6 @@ public class TestBlobStore {
         String uname = props.getProperty("jclouds.identity");
         String key = props.getProperty("jclouds.credential");
 
-//        HttpGet method = new HttpGet(endpoint);
-//        method.getParams().setIntParameter("http.socket.timeout", 10000);
-//        method.setHeader("x-auth-user", uname);
-//        method.setHeader("x-auth-key", key);
-//        BasicHttpParams params = new BasicHttpParams();
-//        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
-//        params.setParameter("http.socket.timeout", 10000);
-//
-//        org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
-//        org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
-//
-//        HttpResponse resp = wrapClient1.execute(method);
-//        StatusLine status = resp.getStatusLine();
-//        System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
-//
-//        Header[] allHeaders = resp.getAllHeaders();
-//        for (Header h : allHeaders) {
-//            System.out.println(h.getName() + " : " + h.getValue());
-//            HeaderElement[] elem = h.getElements();
-//            for (HeaderElement e : elem) {
-//                System.out.println("\t" + e.getName() + " : " + e.getValue());
-//            }
-//        }
-//        Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
-//        Header authToken = resp.getFirstHeader("X-Auth-Token");
-//        String storageURL = storageURLHeader.getValue();
-//        System.out.println("storageURL; " + storageURL);
-
-        //Not working. We get javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No subject alternative names present
         final URL url = new URL(endpoint);
 
         // configure the SSLContext with a TrustManager
@@ -540,19 +511,23 @@ public class TestBlobStore {
     }
 
     private static void put() throws IOException, Exception {
-        HttpGet get = new HttpGet(endpoint);
-        get.getParams().setIntParameter("http.socket.timeout", 10000);
         String uname = props.getProperty("jclouds.identity");
         String key = props.getProperty("jclouds.credential");
-        get.setHeader("x-auth-user", uname);
-        get.setHeader("x-auth-key", key);
+
+        HttpGet getMethod = new HttpGet(endpoint);
+        getMethod.getParams().setIntParameter("http.socket.timeout", 10000);
+        getMethod.setHeader("x-auth-user", uname);
+        getMethod.setHeader("x-auth-key", key);
         BasicHttpParams params = new BasicHttpParams();
         org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
         params.setParameter("http.socket.timeout", 10000);
 
         org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
         org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
-        HttpResponse resp = wrapClient1.execute(get);
+
+        HttpResponse resp = wrapClient1.execute(getMethod);
+        StatusLine status = resp.getStatusLine();
+        System.out.println("Status: " + status.getReasonPhrase() + " " + status.getStatusCode());
 
         Header[] allHeaders = resp.getAllHeaders();
         for (Header h : allHeaders) {
@@ -562,6 +537,10 @@ public class TestBlobStore {
                 System.out.println("\t" + e.getName() + " : " + e.getValue());
             }
         }
+        
+        wrapClient1.getConnectionManager().closeExpiredConnections();
+//        wrapClient1.getConnectionManager().shutdown();
+        
 
 
 
@@ -585,7 +564,7 @@ public class TestBlobStore {
                 // In case of an unexpected exception you may want to abort
                 // the HTTP request in order to shut down the underlying
                 // connection and release it back to the connection manager.
-                get.abort();
+                getMethod.abort();
                 throw ex;
 
             } finally {
@@ -600,18 +579,23 @@ public class TestBlobStore {
         }
 
         Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        Header authToken = resp.getFirstHeader("X-Auth-Token");
         String storageURL = storageURLHeader.getValue();
-        Header authTokenHeader = resp.getFirstHeader("X-Auth-Token");
-        String authToken = authTokenHeader.getValue();
+        System.out.println("storageURL; " + storageURL);
+        System.out.println("authToken; " + authToken);
 
+        HttpPut putMethod = new HttpPut(storageURL);
+        putMethod.setHeader(authToken);
+        putMethod.setHeader("x-auth-key", key);
+        putMethod.setHeader("Accept", "*/*");
 
         String container = "deleteMe";
         String putURL = storageURL + "/" + container + "/someFile/_part1";
         HttpPut put = new HttpPut(putURL);
         put.getParams().setIntParameter("http.socket.timeout", 10000);
-        put.setHeader("X-Auth-Token", authToken);
+        put.setHeader(authToken);
         put.setHeader("Accept", "*/*");
-        put.setHeader(authTokenHeader);
+//        put.setHeader(authTokenHeader);
 
         FileEntity entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
         put.setEntity(entity);
@@ -632,9 +616,8 @@ public class TestBlobStore {
         putURL = storageURL + "/" + container + "/someFile/_part2";
         put = new HttpPut(putURL);
         put.getParams().setIntParameter("http.socket.timeout", 10000);
-        put.setHeader("X-Auth-Token", authToken);
+        put.setHeader( authToken);
         put.setHeader("Accept", "*/*");
-        put.setHeader(authTokenHeader);
 
 
         entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
@@ -663,7 +646,7 @@ public class TestBlobStore {
         putURL = storageURL + "/" + container + "/someFile";
         put = new HttpPut(putURL);
         put.setHeader("X-Object-Manifest", container + "/someFile");
-        put.setHeader(authTokenHeader);
+        put.setHeader(authToken);
 
         client = new DefaultHttpClient(params);
         wrapClient1 = wrapClient1(client);
