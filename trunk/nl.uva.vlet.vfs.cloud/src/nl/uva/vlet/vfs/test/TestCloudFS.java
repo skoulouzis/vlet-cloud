@@ -640,21 +640,41 @@ public class TestCloudFS {
         VFileSystem fs = getRemoteTestDir().getFileSystem();
         VFile newFile = fs.newFile(getRemoteTestDir().resolvePathVRL("testFile7"));
         try {
-            Random r = new Random();
-            byte[] writeBuffer = new byte[125];
-            r.nextBytes(writeBuffer);
+
+            byte[] writeBuffer = new byte[1024];
+            //            Random r = new Random();
+//            r.nextBytes(writeBuffer);
+            for (int i = 0; i < writeBuffer.length; i++) {
+                writeBuffer[i] = (byte) i;
+            }
 
             OutputStream os = newFile.getOutputStream();
             os.write(writeBuffer);
             os.close();
 
-            byte[] readBuffer = new byte[125];
+            if (writeBuffer == null) {
+                System.err.println("writeBuffer=NULL");
+            }
+
+            byte[] readBuffer = new byte[1024];
             InputStream is = newFile.getInputStream();
             is.read(readBuffer);
+            is.close();
+
+            if (readBuffer == null) {
+                System.err.println("readBuffer=NULL");
+            }
+
 
             for (int i = 0; i < readBuffer.length; i++) {
+//                if (writeBuffer[i] != readBuffer[i]) {
+//                    Assert.fail(writeBuffer[i] + " != " + readBuffer[i]);
+//                }
                 Assert.assertEquals(writeBuffer[i], readBuffer[i]);
             }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
         } finally {
             newFile.delete();
         }

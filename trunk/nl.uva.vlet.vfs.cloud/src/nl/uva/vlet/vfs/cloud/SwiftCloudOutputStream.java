@@ -55,20 +55,25 @@ class SwiftCloudOutputStream extends OutputStream {
     private ByteArrayOutputStream out;
     private final AsyncBlobStore asyncBlobStore;
     private ListenableFuture<Blob> res;
+    private final String key;
+    private final static int limit=1024*1024;
 
     SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException {
         this.container = container;
         this.blobName = blobName;
+        this.key = key;
         this.asyncBlobStore = asyncBlobStore;
         out = new ByteArrayOutputStream();
-//        initHttpClient(key);
     }
 
     @Override
     public void write(final int b) throws IOException {
         HttpResponse resp = null;
         counter++;
-        if (bytesWriten >= (1024)) {
+        if (bytesWriten >= limit) {
+            if (authToken == null) {
+                initHttpClient(this.key);
+            }
             try {
                 HttpPut put = new HttpPut(putURL + "/_part" + counter);
                 put.setHeader(authToken);
@@ -96,17 +101,21 @@ class SwiftCloudOutputStream extends OutputStream {
 
     @Override
     public void write(final byte[] b, final int off, final int len) throws IOException {
-        if (bytesWriten >= (1024)) {
+        if (bytesWriten >= limit) {
+            if (authToken == null) {
+                initHttpClient(this.key);
+            }
             HttpResponse resp = null;
             try {
                 counter++;
                 HttpPut put = new HttpPut(putURL + "/_part" + counter);
                 put.setHeader(authToken);
 
-                byte[] data = new byte[len];
-                System.arraycopy(b, off, data, 0, len);
-
-                put.setEntity(new ByteArrayEntity(data));
+//                byte[] data = new byte[len];
+//                System.arraycopy(b, off, data, 0, len);
+                
+                out.write(b, off, len);
+                put.setEntity(new ByteArrayEntity(out.toByteArray()));
 
                 client = new DefaultHttpClient(params);
                 wrapClient1 = wrapClient1(client);
@@ -133,14 +142,18 @@ class SwiftCloudOutputStream extends OutputStream {
 
     @Override
     public void write(final byte[] b) throws IOException {
-        if (bytesWriten >= (1024)) {
+        if (bytesWriten >= limit) {
+            if (authToken == null) {
+                initHttpClient(this.key);
+            }
             HttpResponse resp = null;
             try {
                 counter++;
                 HttpPut put = new HttpPut(putURL + "/_part" + counter);
                 put.setHeader(authToken);
-
-                put.setEntity(new ByteArrayEntity(b));
+                
+                out.write(b);
+                put.setEntity(new ByteArrayEntity(out.toByteArray()));
 
                 client = new DefaultHttpClient(params);
                 wrapClient1 = wrapClient1(client);
@@ -170,7 +183,11 @@ class SwiftCloudOutputStream extends OutputStream {
 
     @Override
     public void close() throws IOException {
-        if (counter >= 0) {
+        if (counter > 0) {
+            if (authToken == null) {
+                initHttpClient(this.key);
+            }
+
             HttpResponse resp = null;
             try {
                 HttpPut put = new HttpPut(putURL);

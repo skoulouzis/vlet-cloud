@@ -1,5 +1,7 @@
 package nl.uva.vlet.vfs.cloud;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -29,6 +32,7 @@ import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 import org.jclouds.filesystem.reference.FilesystemConstants;
+import org.jclouds.http.HttpRequest;
 
 /**
  *
@@ -352,18 +356,21 @@ public class CloudFileSystem extends FileSystemNode {
 
     private void block(ListenableFuture<?> res) throws InterruptedException,
             CloudRequestTimeout {
-        int waitTime = 1;
-        // For some reason 'get' alone causes interrupt exceptions
-        while (!res.isDone()) {
-            // logger.debugPrintf("containerExists done %s. Next poll %s\n",
-            // resContainerExists.isDone(),waitTime);
-            Thread.sleep(waitTime);
-            waitTime = waitTime * 2;
+        if (res != null) {
+            int waitTime = 1;
+            // For some reason 'get' alone causes interrupt exceptions
+            while (!res.isDone()) {
+                // logger.debugPrintf("containerExists done %s. Next poll %s\n",
+                // resContainerExists.isDone(),waitTime);
+                Thread.sleep(waitTime);
+                waitTime = waitTime * 2;
 
-            if (waitTime > CloudConstants.TIME_OUT) {
-                throw new CloudRequestTimeout();
+                if (waitTime > CloudConstants.TIME_OUT) {
+                    throw new CloudRequestTimeout();
+                }
             }
         }
+
     }
 
     protected boolean exists(VRL vrl, StorageType type) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceException, CloudRequestTimeout {
@@ -434,10 +441,26 @@ public class CloudFileSystem extends FileSystemNode {
             if (type != StorageType.BLOB) {
                 resRemove = asyncBlobStore.deleteDirectory(containerAndPath[0], containerAndPath[1]);
             } else {
-                resRemove = asyncBlobStore.removeBlob(containerAndPath[0], containerAndPath[1]);
+                ListenableFuture<PageSet<? extends StorageMetadata>> res = asyncBlobStore.list(containerAndPath[0],
+                        Builder.inDirectory(containerAndPath[1]));
+                PageSet<? extends StorageMetadata> list = res.get();
+
+                ArrayList<ListenableFuture> delete = new ArrayList<ListenableFuture>();
+                for (StorageMetadata m : list) {
+                    delete.add(asyncBlobStore.removeBlob(containerAndPath[0], m.getName()));
+                }
+                delete.add(asyncBlobStore.removeBlob(containerAndPath[0], containerAndPath[1]));
+
+                for (int i = 0; i < delete.size(); i++) {
+                    ListenableFuture f = delete.get(i);
+                    f.get();
+                    delete.remove(f);
+                }
             }
             block(resRemove);
-            resRemove.get();
+            if (resRemove != null) {
+                resRemove.get();
+            }
             removed = true;
         }
         if (removed) {
@@ -521,9 +544,9 @@ public class CloudFileSystem extends FileSystemNode {
         String[] containerAndPath = getContainerAndPath(vrl);
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
-        
+
         if (vrl.getScheme().equals("swift")) {
-            
+
             return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
         } else {
             return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
