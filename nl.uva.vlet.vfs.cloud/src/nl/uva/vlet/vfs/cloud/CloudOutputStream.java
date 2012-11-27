@@ -1,5 +1,6 @@
 package nl.uva.vlet.vfs.cloud;
 
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +47,8 @@ public class CloudOutputStream extends OutputStream {
         try {
             //Get blob asynchronously
             Blob blob = res.get();
+            Multimap<String, String> head = null;
+            blob.setAllHeaders(head);
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(blobName).build();
             }
