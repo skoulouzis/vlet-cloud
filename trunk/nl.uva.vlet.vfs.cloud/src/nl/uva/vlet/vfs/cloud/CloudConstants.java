@@ -1,0 +1,20 @@
+package nl.uva.vlet.vfs.cloud;
+
+public class CloudConstants {
+
+//	public static final String[] SCHEMES = { "swift", "s3", "eucalyptus",
+//			"synaptic", "azureblob", "cloudonestorage", "cloudfiles-us",
+//			"cloudfiles-uk", "ninefold-storage", "aws-s3", "googlestorage",
+//			"scaleup-storage", "hosteurope-storage", "tiscali-storage",
+//			"in-memory" };
+    public static final String FILESYSTEM_SCHME = "filesystem";
+    public static final String[] SCHEMES = {"atmos", "cloudfiles-uk", "eucalyptus", 
+        "partnercloud", "s3", "synaptic-storage", "transient", "ninefold-storage", 
+        "swift", "hpcloud-objectstorage-lvs", "cloudonestorage", "cloudfiles-us", 
+        "azureblob", "walrus", "aws-s3", "cloudfiles", FILESYSTEM_SCHME};
+    public static final int TIME_OUT = 15000;
+    
+    public static final int OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES = 60*1024*1024;//60MB
+    
+    public static final String NUM_OF_NODES = "num.of.nodes";
+}

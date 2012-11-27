@@ -1,0 +1,19 @@
+API from http://code.google.com/p/jclouds/wiki/BlobStore
+
+to test with cURL:
+curl -vk -H 'X-Storage-User: test:test' -H 'X-Storage-Pass: test' https://host:8443/auth/v1.0/
+curl -k -H 'X-Auth-Token: <token from above>' <URL from above>
+
+
+Upload in segments:
+ First, upload the segments
+curl -X PUT -H 'X-Auth-Token: <token>' http://<storage_url>/container/myobject/1 --data-binary '1'
+curl -X PUT -H 'X-Auth-Token: <token>' http://<storage_url>/container/myobject/2 --data-binary '2'
+curl -X PUT -H 'X-Auth-Token: <token>' http://<storage_url>/container/myobject/3 --data-binary '3'
+
+# Next, create the manifest file
+curl -X PUT -H 'X-Auth-Token: <token>' -H 'X-Object-Manifest: container/myobject/' http://<storage_url>/container/myobject --data-binary ''
+
+# And now we can download the segments as a single object
+curl -H 'X-Auth-Token: <token>' http://<storage_url>/container/myobject
+
