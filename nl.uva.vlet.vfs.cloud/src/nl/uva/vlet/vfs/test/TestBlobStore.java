@@ -10,8 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
 import nl.uva.vlet.data.StringUtil;
@@ -21,9 +19,7 @@ import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
@@ -47,10 +43,17 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.io.*;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.security.SecureRandom;
+import java.util.*;
 import javax.net.ssl.*;
-import org.apache.http.client.HttpClient;
-import org.apache.http.message.BasicHeader;
+import org.apache.http.StatusLine;
+import org.apache.http.entity.ByteArrayEntity;
+import org.jclouds.domain.Credentials;
+import org.jclouds.http.HttpRequest;
+import org.jclouds.rest.HttpAsyncClient;
+import org.jclouds.rest.HttpClient;
+import org.jclouds.rest.RestContext;
 
 /**
  *
@@ -71,10 +74,11 @@ public class TestBlobStore {
 //            rm();
 //            writeData();
 //            exists(StorageType.BLOB);
-            getOutPutStream();
+//            getOutPutStream();
 //            login();
 
             put();
+//            put2();
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -401,7 +405,7 @@ public class TestBlobStore {
             }
         });
 
-        
+
         OutputStreamWriter wr = new OutputStreamWriter(storageConnection.getOutputStream());
         wr.write("DATAAAAsssssssssssssssssss");
         wr.flush();
@@ -455,23 +459,18 @@ public class TestBlobStore {
         System.out.println("H6 " + authConnection.getHeaderField(6));
         authConnection.disconnect();
 
-        URL storageUrl = new URL(authConnection.getHeaderField(1) + "/LOBCDER-REPLICA-v2.0/data");
+        URL storageUrl = new URL(authConnection.getHeaderField(1) + "/deleteMe/someFile");
         HttpsURLConnection storageConnection = (HttpsURLConnection) storageUrl.openConnection();
         storageConnection.setDoOutput(true);
         storageConnection.setDoInput(true);
 
-        storageConnection.setDoOutput(true);
-        storageConnection.setDoInput(true);
-
-
-        storageConnection.addRequestProperty("PUT", "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/LOBCDER-REPLICA-v2.0/DATAAAA HTTP/1.1");
-        storageConnection.addRequestProperty("User-Agent", "curl/7.22.0 (i686-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3");
-        storageConnection.addRequestProperty("Host", "149.156.10.131:8443");
+//        storageConnection.addRequestProperty("PUT", "/v1/AUTH_047ec1a4-0362-43b6-9991-f9323c6853f5/LOBCDER-REPLICA-v2.0/DATAAAA HTTP/1.1");
+//        storageConnection.addRequestProperty("User-Agent", "curl/7.22.0 (i686-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3");
+//        storageConnection.addRequestProperty("Host", "149.156.10.131:8443");
         storageConnection.addRequestProperty("X-Auth-Token", authConnection.getHeaderField(2));
-        storageConnection.addRequestProperty("Content-Length", "10");
-        storageConnection.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        storageConnection.addRequestProperty("Accept", "*/*");
-        storageConnection.addRequestProperty("X-Auth-Token", authConnection.getHeaderField(2));
+//        storageConnection.addRequestProperty("Content-Length", "10");
+//        storageConnection.addRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+//        storageConnection.addRequestProperty("Accept", "*/*");
         storageConnection.setSSLSocketFactory(factory);
         storageConnection.setHostnameVerifier(new HostnameVerifier() {
 
@@ -537,10 +536,10 @@ public class TestBlobStore {
                 System.out.println("\t" + e.getName() + " : " + e.getValue());
             }
         }
-        
+
         wrapClient1.getConnectionManager().closeExpiredConnections();
 //        wrapClient1.getConnectionManager().shutdown();
-        
+
 
 
 
@@ -584,54 +583,53 @@ public class TestBlobStore {
         System.out.println("storageURL; " + storageURL);
         System.out.println("authToken; " + authToken);
 
-        HttpPut putMethod = new HttpPut(storageURL);
-        putMethod.setHeader(authToken);
-        putMethod.setHeader("x-auth-key", key);
-        putMethod.setHeader("Accept", "*/*");
 
+        //Add part 1
         String container = "deleteMe";
         String putURL = storageURL + "/" + container + "/someFile/_part1";
         HttpPut put = new HttpPut(putURL);
         put.getParams().setIntParameter("http.socket.timeout", 10000);
         put.setHeader(authToken);
-        put.setHeader("Accept", "*/*");
-//        put.setHeader(authTokenHeader);
 
-        FileEntity entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
-        put.setEntity(entity);
-        put.setHeader(entity.getContentType());
+        byte[] data1 = new byte[10];
+        for (int i = 0; i < data1.length; i++) {
+            data1[i] = (byte) i;
+        }
+        for (int i = 0; i < data1.length; i++) {
+            System.out.println("Set2: " + data1[i]);
+        }
+
+        ByteArrayEntity byteEntry = new ByteArrayEntity(data1);
+        put.setEntity(byteEntry);
+//        put.setHeader(byteEntry.getContentType());
 
         client = new DefaultHttpClient(params);
         wrapClient1 = wrapClient1(client);
-
-
         resp = wrapClient1.execute(put);
         InputStream instream = resp.getEntity().getContent();
         BufferedReader reader = new BufferedReader(new InputStreamReader(instream));
         // do something useful with the response
-        System.out.println("Responce:---- " + reader.readLine());
+        System.out.println("Responce PUT " + put.getURI() + " " + reader.readLine());
+        wrapClient1.getConnectionManager().closeExpiredConnections();
 
 
-
+        //Add part 2
         putURL = storageURL + "/" + container + "/someFile/_part2";
         put = new HttpPut(putURL);
         put.getParams().setIntParameter("http.socket.timeout", 10000);
-        put.setHeader( authToken);
-        put.setHeader("Accept", "*/*");
+        put.setHeader(authToken);
 
-
-        entity = new FileEntity(new File(System.getProperty("user.home") + "/Downloads/bwm_webdav.csv"), "plain/text");
-        put.setEntity(entity);
-        put.setHeader(entity.getContentType());
-
-        allHeaders = resp.getAllHeaders();
-        for (Header h : allHeaders) {
-            System.out.println(h.getName() + " : " + h.getValue());
-            HeaderElement[] elem = h.getElements();
-            for (HeaderElement e : elem) {
-                System.out.println("\t" + e.getName() + " : " + e.getValue());
-            }
+        byte[] data2 = new byte[10];
+        for (int i = 0; i < data2.length; i++) {
+            data2[i] = (byte) (i + data2.length);
         }
+
+        for (int i = 0; i < data2.length; i++) {
+            System.out.println("Set2: " + data2[i]);
+        }
+        byteEntry = new ByteArrayEntity(data2);
+        put.setEntity(byteEntry);
+//        put.setHeader(byteEntry.getContentType());
 
         client = new DefaultHttpClient(params);
         wrapClient1 = wrapClient1(client);
@@ -639,10 +637,10 @@ public class TestBlobStore {
         instream = resp.getEntity().getContent();
         reader = new BufferedReader(new InputStreamReader(instream));
         // do something useful with the response
-        System.out.println("Responce:---- " + reader.readLine());
+        System.out.println("Responce PUT " + put.getURI() + " " + reader.readLine());
+        wrapClient1.getConnectionManager().closeExpiredConnections();
 
-
-
+        //Get BACK the file 
         putURL = storageURL + "/" + container + "/someFile";
         put = new HttpPut(putURL);
         put.setHeader("X-Object-Manifest", container + "/someFile");
@@ -655,7 +653,63 @@ public class TestBlobStore {
         instream = resp.getEntity().getContent();
         reader = new BufferedReader(new InputStreamReader(instream));
         // do something useful with the response
-        System.out.println("Responce:---- " + reader.readLine());
+        System.out.println(" Manifest Responce:---- " + reader.readLine());
+        wrapClient1.getConnectionManager().closeExpiredConnections();
+
+        getMethod = new HttpGet(putURL);
+        getMethod.setHeader(authToken);
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
+        resp = wrapClient1.execute(getMethod);
+        instream = resp.getEntity().getContent();
+        int len = 0;
+        byte[] buffer = new byte[10];
+        while (len != -1) {
+            len = instream.read(buffer);
+            for (int i = 0; i < len; i++) {
+                System.out.println("Responce " + getMethod.getURI() + " " + buffer[i]);
+            }
+        }
+
+        getMethod = new HttpGet(putURL + "/_part2");
+        getMethod.setHeader(authToken);
+
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
+
+        resp = wrapClient1.execute(getMethod);
+        instream = resp.getEntity().getContent();
+        len = 0;
+        buffer = new byte[10];
+        while (len != -1) {
+            len = instream.read(buffer);
+            for (int i = 0; i < len; i++) {
+                System.out.println("Responce " + getMethod.getURI() + " " + buffer[i]);
+            }
+        }
+
+
+        wrapClient1.getConnectionManager().closeExpiredConnections();
+
+    }
+
+    private static void put2() throws IOException, Exception {
+        RestContext<Object, Object> ctx = asyncBlobStore.getContext().getProviderSpecificContext();
+        URI ctxEndpoint = ctx.getEndpoint();
+        System.out.println("ctxEndpoint: " + ctxEndpoint);
+
+        Map<String, Credentials> cred = ctx.getCredentialStore();
+        Iterator<String> keysIter = cred.keySet().iterator();
+
+        while (keysIter.hasNext()) {
+            String key = keysIter.next();
+            System.out.println(key + " : " + cred.get(key));
+        }
+        System.out.println(ctx.getDescription());
+        System.out.println(ctx.getId());
+
+        System.out.println(ctx.getIdentity());
+
 
 
     }

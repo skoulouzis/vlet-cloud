@@ -1,6 +1,6 @@
 package nl.uva.vlet.vfs.test;
 
-import java.io.File;
+import java.io.*;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_EXISTS;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_HOSTNAME;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_LENGTH;
@@ -12,16 +12,14 @@ import static nl.uva.vlet.data.VAttributeConstants.ATTR_PORT;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_SCHEME;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_TYPE;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
 import junit.framework.Assert;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.exception.ResourceAlreadyExistsException;
 import nl.uva.vlet.exception.ResourceCreationFailedException;
-import nl.uva.vlet.exception.ResourceException;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VDir;
@@ -53,8 +51,8 @@ public class TestCloudFS {
 //            testLoc = new VRL(
 //                    "swift://149.156.10.131:8443/auth/v1.0/TEST_VRS_LOC");
 
-             testLoc = new VRL(
-             "swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
+            testLoc = new VRL(
+                    "swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
 
 
 //            testLoc = new VRL(
@@ -64,6 +62,9 @@ public class TestCloudFS {
             e.printStackTrace();
         }
     }
+    private static VDir testRemoteDir;
+    private static VDir localTempDir;
+    private static VRL localTempDirVrl = TestSettings.getTestLocation(TestSettings.VFS_LOCAL_TEMPDIR_LOCATION);
 
     /**
      * @param args
@@ -109,8 +110,12 @@ public class TestCloudFS {
             // testFileAttributes();
 
             // testZCreateFileWhileDirectoryWithSameNameExists();
-            
-            measureUpload();
+
+//            measureUpload();
+
+            testSwiftCloudOutputStream();
+
+//            testMove10MBForthAndBack();
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -129,7 +134,7 @@ public class TestCloudFS {
         boolean exists = cloudFS.openLocation(vrl).exists();
 
         if (exists) {
-            cloudFS.rm(vrl,StorageType.BLOB);
+            cloudFS.rm(vrl, StorageType.BLOB);
         }
 
         cloudFS.touch(vrl, true);
@@ -233,7 +238,7 @@ public class TestCloudFS {
 
         VRL vrl = testLoc.append("/test_1/newDir1");
         // cloudFS.createDir(vrl, true);
-        boolean success = cloudFS.rm(vrl,StorageType.FOLDER);
+        boolean success = cloudFS.rm(vrl, StorageType.FOLDER);
 
         logger.debugPrintf("Success?? %s \n", success);
 
@@ -279,7 +284,7 @@ public class TestCloudFS {
         VRL vrl2 = testLoc.append("/testBlobStoreVFS");
         cloudFS.createDir(testLoc.append("testBlobStoreVFS"), false);
 
-        cloudFS.rm(vrl2,StorageType.FOLDER);
+        cloudFS.rm(vrl2, StorageType.FOLDER);
     }
 
     private static void testOpenNode() throws VlException {
@@ -331,8 +336,13 @@ public class TestCloudFS {
 
         info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
 
-        info.setUsername("vphdemo:vphdemo");
-        info.setPassword("LibiDibi7");
+
+        String uname = getCloudProperties().getProperty("jclouds.identity");
+        String key = getCloudProperties().getProperty("jclouds.credential");
+
+
+        info.setUsername(uname);
+        info.setPassword(key);
         info.store();
 
         CloudFSFactory fsFactory = new CloudFSFactory();
@@ -340,7 +350,10 @@ public class TestCloudFS {
         cloudFS = (CloudFileSystem) fsFactory.createNewFileSystem(context,
                 info, testLoc);
 
-        cloudFS.createDir(testLoc, true);
+        testRemoteDir = cloudFS.createDir(testLoc, true);
+
+        localTempDir = new VFSClient().createDir(localTempDirVrl, true);
+
     }
 
     public static void testListDirFiltered() throws VlException {
@@ -462,7 +475,6 @@ public class TestCloudFS {
                 "After deletion, a file may NOT report it still 'exists'!",
                 newFile.exists());
     }
-    
     private static Object uniquepathnrMutex = new Object();
     private static int uniquepathnr = 0;
 
@@ -470,84 +482,6 @@ public class TestCloudFS {
         synchronized (uniquepathnrMutex) {
             return prefix + uniquepathnr++;
         }
-    }
-
-    private static void testCreateDirectoryWhileFileWithSameNameExists()
-            throws VlException {
-        String fdname = "testfiledir2";
-
-        if (getRemoteTestDir().existsDir(fdname)) {
-            // previous test went wrong !!
-            logger.debugPrintf("*** Warning: Remote testfile already exists and is a directory");
-            VDir dir = getRemoteTestDir().getDir(fdname);
-            dir.delete(false);
-
-            Assert.assertFalse(
-                    "Could not remote previous test directory. Please remove it manually:"
-                    + dir, dir.exists());
-            // fail("Remote testfile is already directory. Please remove previous test directory!");
-        }
-
-        VFile newfile = getRemoteTestDir().createFile("testfiledir2");
-
-        // MUST return false!
-        Assert.assertFalse(
-                "existsDir() must return FALSE when file with same name already exists!",
-                getRemoteTestDir().existsDir("testfiledir2"));
-
-        try {
-            VDir newDir = getRemoteTestDir().createDir("testfiledir2");
-            Assert.fail("Create directory out of existing file should raise Exception:");
-        } // both are allowed:
-        catch (ResourceCreationFailedException e) {
-            // e.printStackTrace();
-        } catch (ResourceAlreadyExistsException e) {
-            // e.printStackTrace();
-        }
-
-        newfile.delete();
-    }
-
-    private static void testExceptionsExistingDir() throws VlException {
-        VDir newDir = getRemoteTestDir().createDir("testExistingDir2");
-
-        try {
-            // create and do NOT ignore:
-            newDir = getRemoteTestDir().createDir("testExistingDir2", false);
-            newDir.delete();
-            Assert.fail("createDir(): Should raise Exception:"
-                    + ResourceAlreadyExistsException.class);
-        } catch (ResourceAlreadyExistsException e) {
-            // e.printStackTrace();
-        }
-
-        newDir.delete();
-        VFile newFile = getRemoteTestDir().createFile("testExistingFile2");
-
-        try {
-            // create Dir and do NOT ignore existing File or Dir:
-            newDir = getRemoteTestDir().createDir("testExistingFile2", false);
-            newDir.delete();
-            Assert.fail("createDir(): Should raise Exception:"
-                    + ResourceAlreadyExistsException.class + " or "
-                    + ResourceCreationFailedException.class);
-        } // also allowed as the intended resource doesn't exists as exactly
-        // the same type: existing Directory is not the intended File
-        catch (ResourceCreationFailedException e) {
-            // e.printStackTrace();
-        } catch (ResourceAlreadyExistsException e) {
-            // e.printStackTrace();
-        } catch (ResourceException e) {
-            // e.printStackTrace();
-
-            Assert.fail("createDir(): Although a resource execption is better then any other,"
-                    + "this unit test expects either:"
-                    + ResourceAlreadyExistsException.class
-                    + " or "
-                    + ResourceCreationFailedException.class);
-            // Global.debugPrintStacktrace(e);
-        }
-        newFile.delete();
     }
 
     public static void testCreateAndIgnoreExistingDir() throws VlException {
@@ -566,7 +500,6 @@ public class TestCloudFS {
 
         newDir.delete();
     }
-    
     private static final String TEST_CONTENTS = ">>> This is a testfile used for the VFS unit tests  <<<\n"
             + "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
             + "0123456789@#$%*()_+\n"
@@ -703,11 +636,119 @@ public class TestCloudFS {
         }
     }
 
+    private static void testSwiftCloudOutputStream() throws VlException, IOException {
+        VFileSystem fs = getRemoteTestDir().getFileSystem();
+        VFile newFile = fs.newFile(getRemoteTestDir().resolvePathVRL("testFile7"));
+        try {
+            Random r = new Random();
+            byte[] writeBuffer = new byte[125];
+            r.nextBytes(writeBuffer);
+
+            OutputStream os = newFile.getOutputStream();
+            os.write(writeBuffer);
+            os.close();
+
+            byte[] readBuffer = new byte[125];
+            InputStream is = newFile.getInputStream();
+            is.read(readBuffer);
+
+            for (int i = 0; i < readBuffer.length; i++) {
+                Assert.assertEquals(writeBuffer[i], readBuffer[i]);
+            }
+        } finally {
+            newFile.delete();
+        }
+
+    }
+
     private static void measureUpload() throws VRLSyntaxException, InterruptedException, ExecutionException, VlException {
-        VDir dataset = VFSClient.getDefault().getDir("file:///"+System.getProperty("user.home")+"/Downloads/testData/dataset/");
+        VDir dataset = VFSClient.getDefault().getDir("file:///" + System.getProperty("user.home") + "/Downloads/testData/dataset/");
         long start = System.currentTimeMillis();
         dataset.copyTo(getRemoteTestDir());
         long end = System.currentTimeMillis();
-        System.out.println("Elapsed: "+(end-start) );
+        System.out.println("Elapsed: " + (end - start));
+    }
+
+    private static void testMove10MBForthAndBack() throws Exception {
+
+        VFile localFile = null;
+        VFile remoteFile = null;
+
+
+        localFile = localTempDir.createFile("test10MBmove");
+
+        int len = 10 * 1024 * 1024;
+
+        // create random file: fixed seed for reproducable tests
+        Random generator = new Random(13);
+        byte buffer[] = new byte[len];
+        generator.nextBytes(buffer);
+        System.err.println("streamWriting to localfile:" + localFile);
+        localFile.streamWrite(buffer, 0, buffer.length);
+
+        // move to remote (and do same basic asserts).
+        long start_time = System.currentTimeMillis();
+        System.err.println("moving localfile to:" + getRemoteTestDir());
+        remoteFile = localFile.moveTo(getRemoteTestDir());
+        long total_millis = System.currentTimeMillis() - start_time;
+        double up_speed = (len / 1024.0) / (total_millis / 1000.0);
+        System.err.println("upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                + "KB/s");
+
+        System.err.println("new remote file=" + remoteFile);
+
+        Assert.assertNotNull("new remote File is NULL", remoteFile);
+        Assert.assertTrue(
+                "after move to remote testdir, remote file doesn't exist:"
+                + remoteFile, remoteFile.exists());
+        Assert.assertFalse(
+                "local file reports it still exists, after it has moved",
+                localFile.exists());
+
+        // move back to local with new name (and do same basic asserts).
+        start_time = System.currentTimeMillis();
+
+        VFile newLocalFile = remoteFile.moveTo(localTempDir,
+                "test10MBback");
+        Assert.assertNotNull("new local File is NULL", newLocalFile);
+        Assert.assertFalse(
+                "remote file reports it still exists, after it has moved",
+                remoteFile.exists());
+        total_millis = System.currentTimeMillis() - start_time;
+
+        double down_speed = (len / 1024.0) / (total_millis / 1000.0);
+        System.err.println("download speed=" + ((int) (down_speed * 1000)) / 1000.0
+                + "KB/s");
+
+        // check contents:
+
+        byte newcontents[] = newLocalFile.getContents();
+        int newlen = newcontents.length;
+        // check size:
+        Assert.assertEquals("size of new contents does not match.", len,
+                newlen);
+
+        // compare contents
+        for (int i = 0; i < len; i++) {
+            if (buffer[i] != newcontents[i]) {
+                Assert.assertEquals(
+                        "Contents of file not the same. Byte nr=" + i,
+                        buffer[i], newcontents[i]);
+            }
+        }
+
+        newLocalFile.delete();
+    }
+
+    private static Properties getCloudProperties()
+            throws FileNotFoundException, IOException {
+        Properties properties = new Properties();
+        String propPath = System.getProperty("user.home") + File.separator
+                + "workspace" + File.separator + "nl.uva.vlet.vfs.cloud"
+                + File.separator + "etc" + File.separator + "cloud.properties";
+        File f = new File(propPath);
+        properties.load(new FileInputStream(f));
+
+        return properties;
     }
 }

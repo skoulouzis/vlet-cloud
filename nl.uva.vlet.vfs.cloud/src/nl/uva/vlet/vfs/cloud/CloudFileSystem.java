@@ -96,9 +96,9 @@ public class CloudFileSystem extends FileSystemNode {
             }
         }
 
-        debug("Username: " + username);
+//        debug("Username: " + username);
         String passwd = info.getPassword();
-        debug("Password: " + passwd);
+//        debug("Password: " + passwd);
         if (StringUtil.isEmpty(passwd)) {
             ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
             for (ServerInfo i : moreInfo) {
@@ -521,7 +521,14 @@ public class CloudFileSystem extends FileSystemNode {
         String[] containerAndPath = getContainerAndPath(vrl);
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
-        return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
+        
+        if (vrl.getScheme().equals("swift")) {
+            
+            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
+        } else {
+            return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
+        }
+
     }
 
     public boolean touch(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, CloudRequestTimeout {

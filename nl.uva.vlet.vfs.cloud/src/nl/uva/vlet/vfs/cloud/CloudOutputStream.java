@@ -1,20 +1,10 @@
 package nl.uva.vlet.vfs.cloud;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Properties;
+import com.google.common.util.concurrent.ListenableFuture;
+import java.io.*;
 import java.util.concurrent.ExecutionException;
-
-import nl.uva.vlet.ClassLogger;
-
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.domain.Blob;
-
-import com.google.common.util.concurrent.ListenableFuture;
-import java.io.ByteArrayOutputStream;
 import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
@@ -26,7 +16,6 @@ public class CloudOutputStream extends OutputStream {
 //    private BlobStoreContext blobContext;
     private File bufferFile;
     private OutputStream out;
-
     private final AsyncBlobStore asyncBlobStore;
     private int bytesWriten = 0;
     private final ListenableFuture<Blob> res;
@@ -53,7 +42,7 @@ public class CloudOutputStream extends OutputStream {
         }
     }
 
-     private void writeData() throws InterruptedException, ExecutionException {
+    private void writeData() throws InterruptedException, ExecutionException {
         try {
             //Get blob asynchronously
             Blob blob = res.get();
@@ -65,7 +54,7 @@ public class CloudOutputStream extends OutputStream {
                 asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
             } else if (out instanceof FileOutputStream) {
                 blob.setPayload(bufferFile);
-                if (bufferFile.length() > (800 * 1024 * 1024)) {
+                if (bufferFile.length() > (50 * 1024 * 1024)) {
                     asyncBlobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
                 } else {
                     asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
@@ -123,11 +112,11 @@ public class CloudOutputStream extends OutputStream {
         if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
-            
+
             fos.write(((ByteArrayOutputStream) out).toByteArray());
             out.flush();
             out.close();
-            
+
             out = fos;
         }
     }
