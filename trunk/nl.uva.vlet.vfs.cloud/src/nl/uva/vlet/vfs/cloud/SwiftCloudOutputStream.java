@@ -10,9 +10,8 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.LinkedList;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -40,7 +39,7 @@ import org.jclouds.rest.RestContext;
  * @author skoulouz
  */
 class SwiftCloudOutputStream extends OutputStream {
-
+    
     private int bytesWriten = 0;
     private final String container;
     private final String blobName;
@@ -53,62 +52,66 @@ class SwiftCloudOutputStream extends OutputStream {
     private final AsyncBlobStore asyncBlobStore;
     private Header storageURLHeader;
     private String putURL;
-    private int counter;
+    private int counter=1;
     private ThreadPoolExecutor executorService;
-
+    private int limit;
+    
     public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) {
-
+        
         this.container = container;
         this.blobName = blobName;
         this.asyncBlobStore = asyncBlobStore;
         out = new ByteArrayOutputStream();
-
         this.key = key;
+        
+        limit = Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES * counter;
     }
-
+    
     @Override
     public void write(final int b) throws IOException {
         out.write(b);
         bytesWriten++;
-        if (bytesWriten >= Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten >= limit) {
             uploadChunk();
         }
     }
-
+    
     @Override
     public void write(final byte[] b, final int off, final int len) throws IOException {
         out.write(b, off, len);
         bytesWriten += len;
-        if (bytesWriten >= Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten >= limit) {
             uploadChunk();
         }
     }
-
+    
     @Override
     public void write(final byte[] b) throws IOException {
         out.write(b);
         bytesWriten += b.length;
-        if (bytesWriten >= Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten >= limit) {
             uploadChunk();
         }
     }
-
+    
     @Override
     public void flush() throws IOException {
         out.flush();
     }
-
+    
     @Override
     public void close() throws IOException {
         try {
             out.close();
             setManifestFile();
             //        blobContext.close();
+        } catch (ExecutionException ex) {
+            throw new IOException(ex);
         } catch (InterruptedException ex) {
             throw new IOException(ex);
         }
     }
-
+    
     private void uploadChunk() throws FileNotFoundException, IOException {
         if (this.authToken == null) {
             initHttpClient(this.key);
@@ -118,30 +121,22 @@ class SwiftCloudOutputStream extends OutputStream {
             HttpPut put = new HttpPut(putURL + "/_part" + counter);
             put.setHeader(authToken);
             put.setEntity(new ByteArrayEntity(out.toByteArray()));
-            //            client = new DefaultHttpClient(params);
-            //            wrapClient1 = wrapClient1(client);
+            
             PutRunnable putTask = new PutRunnable(wrapClient1, counter);
             putTask.setPut(put);
             executorService.submit(putTask);
-//            resp = wrapClient1.execute(put);
-//
-//            if (resp.getStatusLine().getStatusCode() != 201) {
-//                throw new IOException(resp.toString());
-//            }
 
         } finally {
             bytesWriten = 0;
             counter++;
+            limit= limit * counter;
+            System.err.println("New Limit: "+(limit/(1024.0 * 1024.0))+" MB");
             out.reset();
-//            if (resp != null) {
-//                EntityUtils.consume(resp.getEntity());
-//            }
-//            wrapClient1.getConnectionManager().closeExpiredConnections();
         }
     }
-
-    private void setManifestFile() throws IOException, InterruptedException {
-
+    
+    private void setManifestFile() throws IOException, InterruptedException, ExecutionException {
+        
         if (out.size() > 0 || out.toByteArray().length > 0) {
             uploadChunk();
         }
@@ -153,56 +148,47 @@ class SwiftCloudOutputStream extends OutputStream {
             HttpPut put = new HttpPut(putURL);
             put.setHeader("X-Object-Manifest", container + "/" + blobName);
             put.setHeader(authToken);
-
+            
             PutRunnable putTask = new PutRunnable(wrapClient1, counter);
             putTask.setPut(put);
             executorService.submit(putTask);
-
-//            client = new DefaultHttpClient(params);
-//            wrapClient1 = wrapClient1(client);
-//            resp = wrapClient1.execute(put);
-
-//            if (resp.getStatusLine().getStatusCode() != 201) {
-//                throw new IOException(resp.toString());
-//            }
+            
         } finally {
-
+            int count = executorService.getActiveCount();
+            System.err.println("Before Still running: " + count);
             executorService.shutdown();
-            try {
-                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-                    // pool didn't terminate after the first try
-                    executorService.shutdownNow();
-                }
-                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-                    executorService.shutdownNow();
-                }
-            } catch (InterruptedException ex) {
-                executorService.shutdownNow();
-                Thread.currentThread().interrupt();
+//            System.err.println("After Still running: " + count);
+            long sleepTime = 50;
+            while (!executorService.awaitTermination(2, TimeUnit.HOURS)) {
+//            while (count >= 1) {
+                count = executorService.getActiveCount();
+                sleepTime = 25 * count;
+                System.err.println("Still running: " + count + " sleeping for :" + sleepTime);
+                Thread.sleep(sleepTime);
             }
-//            if (resp != null) {
-//                EntityUtils.consume(resp.getEntity());
-//            }
+            System.err.println("Still running: " + executorService.getActiveCount());
+            if (resp != null) {
+                EntityUtils.consume(resp.getEntity());
+            }
             wrapClient1.getConnectionManager().closeExpiredConnections();
             counter = 0;
         }
     }
-
+    
     private void initHttpClient(String key) throws IOException {
         params = new BasicHttpParams();
         org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
         params.setParameter("http.socket.timeout", 10000);
-
+        
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
-        // Increase max total connection to 200
-        cm.setMaxTotal(100);
-
+        cm.setMaxTotal(300);
+        
         client = new DefaultHttpClient(cm, params);
         wrapClient1 = wrapClient(client);
-
+        
         RestContext<Object, Object> ctx = asyncBlobStore.getContext().getProviderSpecificContext();
         URI endpoint = ctx.getEndpoint();
-
+        
         HttpGet getMethod = new HttpGet(endpoint);
         getMethod.getParams().setIntParameter("http.socket.timeout", 9000);
         getMethod.setHeader("x-auth-user", ctx.getIdentity());
@@ -211,31 +197,31 @@ class SwiftCloudOutputStream extends OutputStream {
         if (resp.getStatusLine().getStatusCode() != 200) {
             throw new IOException(resp.getStatusLine().toString());
         }
-
+        
         storageURLHeader = resp.getFirstHeader("X-Storage-Url");
         authToken = resp.getFirstHeader("X-Auth-Token");
-
+        
         wrapClient1.getConnectionManager().closeExpiredConnections();
-
+        
         putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
         EntityUtils.consume(resp.getEntity());
-
-
-
+        
+        
+        
         int cpus = Runtime.getRuntime().availableProcessors();
-        int maxThreads = cpus * 10;
+        int maxThreads = cpus * 100;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
         executorService = new ThreadPoolExecutor(
                 maxThreads, // core thread pool size
                 maxThreads, // maximum thread pool size
-                30, // time to wait before resizing pool
+                10, // time to wait before resizing pool
                 TimeUnit.SECONDS,
                 queue,
                 new ThreadPoolExecutor.CallerRunsPolicy());
-
+        
     }
-
+    
     private org.apache.http.client.HttpClient wrapClient(org.apache.http.client.HttpClient base) {
         try {
             SSLSocketFactory ssf = getSSLSocketFactory();
@@ -247,27 +233,27 @@ class SwiftCloudOutputStream extends OutputStream {
             return null;
         }
     }
-
+    
     private SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = getSSLContext();
-
+        
         SSLSocketFactory ssf = new SSLSocketFactory(ctx);
         ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
         return ssf;
     }
-
+    
     private static SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager tm = new X509TrustManager() {
-
+            
             @Override
             public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
             }
-
+            
             @Override
             public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException {
             }
-
+            
             @Override
             public X509Certificate[] getAcceptedIssuers() {
                 return null;
@@ -276,18 +262,18 @@ class SwiftCloudOutputStream extends OutputStream {
         ctx.init(null, new TrustManager[]{tm}, null);
         return ctx;
     }
-
+    
     private static class PutRunnable implements Runnable {
-
+        
         private final HttpClient client;
         private final int id;
         private HttpPut put;
-
+        
         private PutRunnable(HttpClient client, int id) {
             this.client = client;
             this.id = id;
         }
-
+        
         @Override
         public void run() {
             HttpResponse resp = null;
@@ -308,7 +294,7 @@ class SwiftCloudOutputStream extends OutputStream {
                 }
             }
         }
-
+        
         private void setPut(HttpPut put) {
             this.put = put;
         }
