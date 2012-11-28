@@ -1,7 +1,5 @@
 package nl.uva.vlet.vfs.cloud;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +7,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -32,7 +29,6 @@ import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 import org.jclouds.filesystem.reference.FilesystemConstants;
-import org.jclouds.http.HttpRequest;
 
 /**
  *

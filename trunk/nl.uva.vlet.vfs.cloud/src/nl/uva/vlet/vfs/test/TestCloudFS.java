@@ -693,7 +693,7 @@ public class TestCloudFS {
             try {
                 localFile = localTempDir.createFile("test10MBmove");
 
-                int len = 10 * 1024 * 1024;
+                int len = 100 * 1024 * 1024;
 
                 // create random file: fixed seed for reproducable tests
                 //            Random generator = new Random(13);            
