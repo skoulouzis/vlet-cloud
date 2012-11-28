@@ -56,12 +56,12 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
-            <version>4.1.4</version>
+            <version>4.2.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.1.3</version>
+            <version>4.2.2</version>
         </dependency>
         <dependency>
             <groupId>nl.uva.vlet</groupId>
@@ -107,7 +107,11 @@
             <version>1.46</version>
             <scope>runtime</scope>
         </dependency>
-        
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>3.1</version>
+        </dependency>
     </dependencies>
 
 
