@@ -15,6 +15,8 @@ import static nl.uva.vlet.data.VAttributeConstants.ATTR_TYPE;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import junit.framework.Assert;
 import nl.uva.vlet.ClassLogger;
@@ -680,7 +682,7 @@ public class TestCloudFS {
         }
 
     }
-    
+
     private static void testMove10MBForthAndBack() throws Exception {
 
 
@@ -688,69 +690,79 @@ public class TestCloudFS {
         VFile remoteFile = null;
 
         {
-            localFile = localTempDir.createFile("test10MBmove");
+            try {
+                localFile = localTempDir.createFile("test10MBmove");
 
-            int len = 10 * 1024 * 1024;
+                int len = 100 * 1024 * 1024;
 
-            // create random file: fixed seed for reproducable tests
-            Random generator = new Random(13);
-            byte buffer[] = new byte[len];
-            generator.nextBytes(buffer);
-            System.out.println("streamWriting to localfile:" + localFile);
-            localFile.streamWrite(buffer, 0, buffer.length);
-
-            // move to remote (and do same basic asserts).
-            long start_time = System.currentTimeMillis();
-            System.out.println("moving localfile to:" + getRemoteTestDir());
-            remoteFile = localFile.moveTo(getRemoteTestDir());
-            long total_millis = System.currentTimeMillis() - start_time;
-            double up_speed = (len / 1024.0) / (total_millis / 1000.0);
-            System.out.println("upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-                    + "KB/s");
-
-            System.out.println("new remote file=" + remoteFile);
-
-            Assert.assertNotNull("new remote File is NULL", remoteFile);
-            Assert.assertTrue(
-                    "after move to remote testdir, remote file doesn't exist:"
-                    + remoteFile, remoteFile.exists());
-            Assert.assertFalse(
-                    "local file reports it still exists, after it has moved",
-                    localFile.exists());
-
-            // move back to local with new name (and do same basic asserts).
-            start_time = System.currentTimeMillis();
-
-            VFile newLocalFile = remoteFile.moveTo(localTempDir,
-                    "test10MBback");
-            Assert.assertNotNull("new local File is NULL", newLocalFile);
-            Assert.assertFalse(
-                    "remote file reports it still exists, after it has moved",
-                    remoteFile.exists());
-            total_millis = System.currentTimeMillis() - start_time;
-
-            double down_speed = (len / 1024.0) / (total_millis / 1000.0);
-            System.out.println("download speed=" + ((int) (down_speed * 1000)) / 1000.0
-                    + "KB/s");
-
-            // check contents:
-
-            byte newcontents[] = newLocalFile.getContents();
-            int newlen = newcontents.length;
-            // check size:
-            Assert.assertEquals("size of new contents does not match.", len,
-                    newlen);
-
-            // compare contents
-            for (int i = 0; i < len; i++) {
-                if (buffer[i] != newcontents[i]) {
-                    Assert.assertEquals(
-                            "Contents of file not the same. Byte nr=" + i,
-                            buffer[i], newcontents[i]);
+                // create random file: fixed seed for reproducable tests
+                //            Random generator = new Random(13);            
+                //            generator.nextBytes(buffer);
+                byte buffer[] = new byte[len];
+                for (int i = 0; i < buffer.length; i++) {
+                    buffer[i] = (byte) i;
                 }
-            }
+                System.out.println("streamWriting to localfile:" + localFile);
+                localFile.streamWrite(buffer, 0, buffer.length);
 
-            newLocalFile.delete();
+                // move to remote (and do same basic asserts).
+                long start_time = System.currentTimeMillis();
+                System.out.println("moving localfile to:" + getRemoteTestDir());
+                remoteFile = localFile.moveTo(getRemoteTestDir());
+                long total_millis = System.currentTimeMillis() - start_time;
+                double up_speed = (len / 1024.0) / (total_millis / 1000.0);
+                System.out.println("upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                        + "KB/s");
+
+                System.out.println("new remote file=" + remoteFile);
+
+                Assert.assertNotNull("new remote File is NULL", remoteFile);
+                Assert.assertTrue(
+                        "after move to remote testdir, remote file doesn't exist:"
+                        + remoteFile, remoteFile.exists());
+                Assert.assertFalse(
+                        "local file reports it still exists, after it has moved",
+                        localFile.exists());
+
+                // move back to local with new name (and do same basic asserts).
+                start_time = System.currentTimeMillis();
+
+                VFile newLocalFile = remoteFile.moveTo(localTempDir,
+                        "test10MBback");
+                Assert.assertNotNull("new local File is NULL", newLocalFile);
+                Assert.assertFalse(
+                        "remote file reports it still exists, after it has moved",
+                        remoteFile.exists());
+                total_millis = System.currentTimeMillis() - start_time;
+
+                double down_speed = (len / 1024.0) / (total_millis / 1000.0);
+                System.out.println("download speed=" + ((int) (down_speed * 1000)) / 1000.0
+                        + "KB/s");
+
+                // check contents:
+
+                byte newcontents[] = newLocalFile.getContents();
+                int newlen = newcontents.length;
+                // check size:
+                if (len != newlen) {
+                    System.out.println("Expected: " + len + " got: " + newlen);
+                    throw new Exception("Expected: " + len + " got: " + newlen);
+                }
+
+
+                // compare contents
+                for (int i = 0; i < len; i++) {
+                    if (buffer[i] != newcontents[i]) {
+                        Assert.assertEquals(
+                                "Contents of file not the same. Byte nr=" + i,
+                                buffer[i], newcontents[i]);
+                    }
+                }
+
+                newLocalFile.delete();
+            } catch (VlException ex) {
+                Logger.getLogger(TestCloudFS.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
 
     }
@@ -762,7 +774,7 @@ public class TestCloudFS {
         long end = System.currentTimeMillis();
         System.out.println("Elapsed: " + (end - start));
     }
-    
+
     private static Properties getCloudProperties()
             throws FileNotFoundException, IOException {
         Properties properties = new Properties();

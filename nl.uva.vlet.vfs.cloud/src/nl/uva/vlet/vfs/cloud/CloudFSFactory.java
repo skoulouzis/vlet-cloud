@@ -25,7 +25,7 @@ public class CloudFSFactory extends VFSFactory {
 
     @Override
     public String[] getSchemeNames() {
-        return CloudConstants.SCHEMES;
+        return Constants.SCHEMES;
     }
 
     @Override

@@ -72,7 +72,7 @@ public class CloudFileSystem extends FileSystemNode {
         }
 
         VRL serverVRL = info.getServerVRL();
-        if (!serverVRL.getScheme().equals(CloudConstants.FILESYSTEM_SCHME)) {
+        if (!serverVRL.getScheme().equals(Constants.FILESYSTEM_SCHME)) {
 
             String endpoint = serverVRL.copyWithNewScheme("https").toString();
             debug("Endpoint: " + endpoint);
@@ -124,7 +124,7 @@ public class CloudFileSystem extends FileSystemNode {
                 "true");
 
         props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
-        if (StringUtil.equals(provider, CloudConstants.FILESYSTEM_SCHME)) {
+        if (StringUtil.equals(provider, Constants.FILESYSTEM_SCHME)) {
             String path = System.getProperty("user.home") + "/.local/filesystemstorage";
             File localStorage = new File(path);
             if (!localStorage.exists()) {
@@ -365,7 +365,7 @@ public class CloudFileSystem extends FileSystemNode {
                 Thread.sleep(waitTime);
                 waitTime = waitTime * 2;
 
-                if (waitTime > CloudConstants.TIME_OUT) {
+                if (waitTime > Constants.TIME_OUT) {
                     throw new CloudRequestTimeout();
                 }
             }
