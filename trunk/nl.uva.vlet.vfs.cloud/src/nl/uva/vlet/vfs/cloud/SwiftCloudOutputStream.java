@@ -4,18 +4,15 @@
  */
 package nl.uva.vlet.vfs.cloud;
 
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -34,6 +31,7 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.util.EntityUtils;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.domain.Blob;
+import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.rest.RestContext;
 
 /**
@@ -42,188 +40,157 @@ import org.jclouds.rest.RestContext;
  */
 class SwiftCloudOutputStream extends OutputStream {
 
-    private Header storageURLHeader;
+    private int bytesWriten = 0;
+    private final String container;
+    private final String blobName;
+    private final ByteArrayOutputStream out;
     private Header authToken;
-    private String putURL;
-    private int counter = 0;
+    private final String key;
     private BasicHttpParams params;
     private DefaultHttpClient client;
     private HttpClient wrapClient1;
-    private final String container;
-    private final String blobName;
-    private int bytesWriten = 0;
-    private ByteArrayOutputStream out;
     private final AsyncBlobStore asyncBlobStore;
-    private ListenableFuture<Blob> res;
-    private final String key;
-    private final static int limit=1024*1024;
+    private Header storageURLHeader;
+    private String putURL;
+    private int counter;
 
-    SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException {
+    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) {
+
         this.container = container;
         this.blobName = blobName;
-        this.key = key;
         this.asyncBlobStore = asyncBlobStore;
         out = new ByteArrayOutputStream();
+
+        this.key = key;
     }
 
     @Override
     public void write(final int b) throws IOException {
-        HttpResponse resp = null;
-        counter++;
-        if (bytesWriten >= limit) {
-            if (authToken == null) {
-                initHttpClient(this.key);
-            }
-            try {
-                HttpPut put = new HttpPut(putURL + "/_part" + counter);
-                put.setHeader(authToken);
-                out.write(b);
-                put.setEntity(new ByteArrayEntity(out.toByteArray()));
-                client = new DefaultHttpClient(params);
-                wrapClient1 = wrapClient1(client);
-                resp = wrapClient1.execute(put);
-                if (resp.getStatusLine().getStatusCode() != 201) {
-                    throw new IOException(resp.toString());
-                }
-            } finally {
-                bytesWriten = 0;
-                out = new ByteArrayOutputStream();
-                if (resp != null) {
-                    EntityUtils.consume(resp.getEntity());
-                }
-                wrapClient1.getConnectionManager().closeExpiredConnections();
-            }
-        } else {
-            out.write(b);
-            bytesWriten += out.toByteArray().length;
+        out.write(b);
+        bytesWriten++;
+        if (bytesWriten >= Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            uploadChunk();
         }
     }
 
     @Override
     public void write(final byte[] b, final int off, final int len) throws IOException {
-        if (bytesWriten >= limit) {
-            if (authToken == null) {
-                initHttpClient(this.key);
-            }
-            HttpResponse resp = null;
-            try {
-                counter++;
-                HttpPut put = new HttpPut(putURL + "/_part" + counter);
-                put.setHeader(authToken);
-
-//                byte[] data = new byte[len];
-//                System.arraycopy(b, off, data, 0, len);
-                
-                out.write(b, off, len);
-                put.setEntity(new ByteArrayEntity(out.toByteArray()));
-
-                client = new DefaultHttpClient(params);
-                wrapClient1 = wrapClient1(client);
-                resp = wrapClient1.execute(put);
-
-                if (resp.getStatusLine().getStatusCode() != 201) {
-                    throw new IOException(resp.toString());
-                }
-            } finally {
-                bytesWriten = 0;
-                out = new ByteArrayOutputStream();
-                if (resp != null) {
-                    EntityUtils.consume(resp.getEntity());
-                }
-                wrapClient1.getConnectionManager().closeExpiredConnections();
-            }
-
-        } else {
-            out.write(b, off, len);
-            bytesWriten += out.toByteArray().length;
+        out.write(b, off, len);
+        bytesWriten += len;
+        if (bytesWriten >= Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            uploadChunk();
         }
-
     }
 
     @Override
     public void write(final byte[] b) throws IOException {
-        if (bytesWriten >= limit) {
-            if (authToken == null) {
-                initHttpClient(this.key);
-            }
-            HttpResponse resp = null;
-            try {
-                counter++;
-                HttpPut put = new HttpPut(putURL + "/_part" + counter);
-                put.setHeader(authToken);
-                
-                out.write(b);
-                put.setEntity(new ByteArrayEntity(out.toByteArray()));
-
-                client = new DefaultHttpClient(params);
-                wrapClient1 = wrapClient1(client);
-                resp = wrapClient1.execute(put);
-
-                if (resp.getStatusLine().getStatusCode() != 201) {
-                    throw new IOException(resp.toString());
-                }
-
-            } finally {
-                bytesWriten = 0;
-                out = new ByteArrayOutputStream();
-                if (resp != null) {
-                    EntityUtils.consume(resp.getEntity());
-                }
-                wrapClient1.getConnectionManager().closeExpiredConnections();
-            }
-        } else {
-            out.write(b);
-            bytesWriten += out.toByteArray().length;
+        out.write(b);
+        bytesWriten += b.length;
+        if (bytesWriten >= Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+            uploadChunk();
         }
     }
 
     @Override
     public void flush() throws IOException {
+        out.flush();
     }
 
     @Override
     public void close() throws IOException {
-        if (counter > 0) {
-            if (authToken == null) {
-                initHttpClient(this.key);
+        out.close();
+        setManifestFile();
+//        blobContext.close();
+    }
+
+    private void uploadChunk() throws FileNotFoundException, IOException {
+        if (this.authToken == null) {
+            initHttpClient(this.key);
+        }
+        HttpResponse resp = null;
+        try {
+            counter++;
+            HttpPut put = new HttpPut(putURL + "/_part" + counter);
+            put.setHeader(authToken);
+
+            put.setEntity(new ByteArrayEntity(out.toByteArray()));
+
+            client = new DefaultHttpClient(params);
+            wrapClient1 = wrapClient1(client);
+            resp = wrapClient1.execute(put);
+
+            if (resp.getStatusLine().getStatusCode() != 201) {
+                throw new IOException(resp.toString());
             }
 
-            HttpResponse resp = null;
-            try {
-                HttpPut put = new HttpPut(putURL);
-                put.setHeader("X-Object-Manifest", container + "/" + blobName);
-                put.setHeader(authToken);
-
-                client = new DefaultHttpClient(params);
-                wrapClient1 = wrapClient1(client);
-                resp = wrapClient1.execute(put);
-
-                if (resp.getStatusLine().getStatusCode() != 201) {
-                    throw new IOException(resp.toString());
-                }
-            } finally {
-                if (resp != null) {
-                    EntityUtils.consume(resp.getEntity());
-                }
-                wrapClient1.getConnectionManager().closeExpiredConnections();
-                counter = 0;
+        } finally {
+            bytesWriten = 0;
+            out.reset();
+            if (resp != null) {
+                EntityUtils.consume(resp.getEntity());
             }
-        } else {
-            try {
-                initBlob();
-                Blob blob = res.get();
-                if (blob == null) {
-                    blob = asyncBlobStore.blobBuilder(blobName).build();
-                }
-                blob.setPayload(((ByteArrayOutputStream) out).toByteArray());
-                asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
-            } catch (InterruptedException ex) {
-                throw new IOException(ex);
-            } catch (ExecutionException ex) {
-                throw new IOException(ex);
+            wrapClient1.getConnectionManager().closeExpiredConnections();
+        }
+    }
+
+    private void setManifestFile() throws IOException {
+
+        if (out.size() > 0 || out.toByteArray().length > 0) {
+            uploadChunk();
+        }
+        if (authToken == null) {
+            initHttpClient(this.key);
+        }
+        HttpResponse resp = null;
+        try {
+            HttpPut put = new HttpPut(putURL);
+            put.setHeader("X-Object-Manifest", container + "/" + blobName);
+            put.setHeader(authToken);
+
+            client = new DefaultHttpClient(params);
+            wrapClient1 = wrapClient1(client);
+            resp = wrapClient1.execute(put);
+
+            if (resp.getStatusLine().getStatusCode() != 201) {
+                throw new IOException(resp.toString());
             }
+        } finally {
+            if (resp != null) {
+                EntityUtils.consume(resp.getEntity());
+            }
+            wrapClient1.getConnectionManager().closeExpiredConnections();
+            counter = 0;
+        }
+    }
+
+    private void initHttpClient(String key) throws IOException {
+        params = new BasicHttpParams();
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
+        params.setParameter("http.socket.timeout", 10000);
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
+
+        RestContext<Object, Object> ctx = asyncBlobStore.getContext().getProviderSpecificContext();
+        URI endpoint = ctx.getEndpoint();
+
+        HttpGet getMethod = new HttpGet(endpoint);
+        getMethod.getParams().setIntParameter("http.socket.timeout", 9000);
+        getMethod.setHeader("x-auth-user", ctx.getIdentity());
+        getMethod.setHeader("x-auth-key", key);
+        HttpResponse resp = wrapClient1.execute(getMethod);
+        if (resp.getStatusLine().getStatusCode() != 200) {
+            throw new IOException(resp.getStatusLine().toString());
         }
 
+        storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        authToken = resp.getFirstHeader("X-Auth-Token");
+
+        wrapClient1.getConnectionManager().closeExpiredConnections();
+
+        putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
+
+        client = new DefaultHttpClient(params);
+        wrapClient1 = wrapClient1(client);
     }
 
     private org.apache.http.client.HttpClient wrapClient1(org.apache.http.client.HttpClient base) {
@@ -265,39 +232,5 @@ class SwiftCloudOutputStream extends OutputStream {
         };
         ctx.init(null, new TrustManager[]{tm}, null);
         return ctx;
-    }
-
-    private void initHttpClient(String key) throws IOException {
-        params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
-        params.setParameter("http.socket.timeout", 10000);
-        client = new DefaultHttpClient(params);
-        wrapClient1 = wrapClient1(client);
-
-        RestContext<Object, Object> ctx = asyncBlobStore.getContext().getProviderSpecificContext();
-        URI endpoint = ctx.getEndpoint();
-
-        HttpGet getMethod = new HttpGet(endpoint);
-        getMethod.getParams().setIntParameter("http.socket.timeout", 9000);
-        getMethod.setHeader("x-auth-user", ctx.getIdentity());
-        getMethod.setHeader("x-auth-key", key);
-        HttpResponse resp = wrapClient1.execute(getMethod);
-        if (resp.getStatusLine().getStatusCode() != 200) {
-            throw new IOException(resp.getStatusLine().toString());
-        }
-
-        storageURLHeader = resp.getFirstHeader("X-Storage-Url");
-        authToken = resp.getFirstHeader("X-Auth-Token");
-
-        wrapClient1.getConnectionManager().closeExpiredConnections();
-
-        putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
-
-        client = new DefaultHttpClient(params);
-        wrapClient1 = wrapClient1(client);
-    }
-
-    private void initBlob() {
-        res = asyncBlobStore.getBlob(container, blobName);
     }
 }

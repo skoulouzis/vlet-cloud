@@ -35,7 +35,7 @@ public class CloudOutputStream extends OutputStream {
     @Override
     public void write(final int b) throws IOException {
         bytesWriten++;
-        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             out.write(b);
         } else {
             dumpTheArrayAndSwitchToFile();
@@ -74,7 +74,7 @@ public class CloudOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len)
             throws IOException {
         bytesWriten += len;
-        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             out.write(b, off, len);
         } else {
             dumpTheArrayAndSwitchToFile();
@@ -85,7 +85,7 @@ public class CloudOutputStream extends OutputStream {
     @Override
     public void write(final byte[] b) throws IOException {
         bytesWriten += b.length;
-        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             out.write(b);
         } else {
             dumpTheArrayAndSwitchToFile();
@@ -112,7 +112,7 @@ public class CloudOutputStream extends OutputStream {
     }
 
     private void dumpTheArrayAndSwitchToFile() throws FileNotFoundException, IOException {
-        if (bytesWriten < CloudConstants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
 
