@@ -90,7 +90,7 @@ import nl.uva.vlet.vrs.io.VZeroSizable;
  * @author P.T. de Boer
  */
 public class testVFS extends VTestCase {
-    
+
     private static final String TEST_CONTENTS = ">>> This is a testfile used for the VFS unit tests  <<<\n"
             + "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
             + "0123456789@#$%*()_+\n"
@@ -126,11 +126,11 @@ public class testVFS extends VTestCase {
     public VRL getLocalTempDirVRL() {
         return localTempDirVrl;
     }
-    
+
     public VRL getRemoteLocation() {
         return remoteTestDirVrl;
     }
-    
+
     public void setRemoteLocation(VRL remoteLocation) {
         this.remoteTestDirVrl = remoteLocation;
     }
@@ -149,16 +149,16 @@ public class testVFS extends VTestCase {
                 + getRemoteLocation());
         VDir dir;
         VRL loc;
-        
+
         synchronized (setupMutex) {
             // create/get only if VDir hasn't been fetched/created before !
             if (getRemoteTestDir() == null) {
-                
+
                 if (getVFS().existsDir(getRemoteLocation())) {
                     setRemoteTestDir(getVFS().getDir(getRemoteLocation()));
-                    
+
                     verbose(3, "setUp(): Using remoteDir:" + getRemoteTestDir());
-                    
+
                 } else {
                     // create complete path !
                     try {
@@ -167,31 +167,31 @@ public class testVFS extends VTestCase {
                         loc = getRemoteLocation();
                         dir = getVFS().mkdirs(loc);
                         setRemoteTestDir(dir);
-                        
+
                         verbose(1, "New created remote test directory="
                                 + getRemoteTestDir());
-                        
+
                     } catch (VlException e) {
                         e.printStackTrace();
                         throw e;
                     }
-                    
+
                     verbose(1, "created new remote test location:"
                             + getRemoteTestDir());
                 }
-                
+
             }
-            
+
             if (localTempDir == null) {
                 VRL localdir = getLocalTempDirVRL();
-                
+
                 if (getVFS().existsDir(localdir)) {
                     localTempDir = getVFS().getDir(localdir);
                     // localTempDir.delete(true);
                 } else {
                     // create complete path !
                     localTempDir = getVFS().mkdirs(localdir, true);
-                    
+
                     verbose(1, "created new local test location:"
                             + localTempDir);
                 }
@@ -205,19 +205,19 @@ public class testVFS extends VTestCase {
      */
     protected void tearDown() {
     }
-    
+
     boolean getTestEncodedPaths() {
         return this.testEncodedPaths;
     }
-    
+
     void setTestEncodedPaths(boolean doEncoding) {
         this.testEncodedPaths = doEncoding;
     }
-    
+
     boolean getTestStrangeCharsInPaths() {
         return this.testStrangeChars;
     }
-    
+
     boolean getTestRenames() {
         return testRenames;
     }
@@ -259,7 +259,7 @@ public class testVFS extends VTestCase {
         // testRenameWithSpaces();
 //        testZCreateDirectoryWhileFileWithSameNameExists();
     }
-    
+
     /**
      * Exist is also a basic method used a lot in the unit tests and VRS
      * methods. <p>
@@ -753,7 +753,6 @@ public class testVFS extends VTestCase {
     }
 
     public void testCreateAndRenameDir() throws VlException {
-
         // must create a d
 //        String newDirName = "renamedTestDirG";
 //
@@ -804,7 +803,6 @@ public class testVFS extends VTestCase {
 //            // cleanup:
 //            renamedFile.delete();
 //        }
-
     }
 
     public void testRenameWithSpaces() throws VlException {
@@ -837,7 +835,6 @@ public class testVFS extends VTestCase {
 //        newFileName = "infixSpace RenameTest000";
 //
 //        testRename(parentDir, orgFileName, newFileName);
-
     }
 
     private void testRename(VDir parentDir, String orgFileName,
@@ -1384,17 +1381,18 @@ public class testVFS extends VTestCase {
         remoteFile.delete();
 
     }
+
     public void testMove10MBForthAndBack() throws Exception {
         if (getTestDoBigTests() == false) {
             return;
         }
-        
+
         VFile localFile = null;
         VFile remoteFile = null;
-        
+
         {
             localFile = localTempDir.createFile("test10MBmove");
-            
+
             int len = 10 * 1024 * 1024;
 
             // create random file: fixed seed for reproducable tests
@@ -1419,9 +1417,9 @@ public class testVFS extends VTestCase {
             double up_speed = (len / 1024.0) / (total_millis / 1000.0);
             verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
                     + "KB/s");
-            
+
             verbose(1, "new remote file=" + remoteFile);
-            
+
             Assert.assertNotNull("new remote File is NULL", remoteFile);
             Assert.assertTrue(
                     "after move to remote testdir, remote file doesn't exist:"
@@ -1432,7 +1430,7 @@ public class testVFS extends VTestCase {
 
             // move back to local with new name (and do same basic asserts).
             start_time = System.currentTimeMillis();
-            
+
             VFile newLocalFile = remoteFile.moveTo(this.localTempDir,
                     "test10MBback");
             Assert.assertNotNull("new local File is NULL", newLocalFile);
@@ -1440,7 +1438,7 @@ public class testVFS extends VTestCase {
                     "remote file reports it still exists, after it has moved",
                     remoteFile.exists());
             total_millis = System.currentTimeMillis() - start_time;
-            
+
             double down_speed = (len / 1024.0) / (total_millis / 1000.0);
             verbose(1, "download speed=" + ((int) (down_speed * 1000)) / 1000.0
                     + "KB/s");
@@ -1460,10 +1458,10 @@ public class testVFS extends VTestCase {
                             buffer[i], newcontents[i]);
                 }
             }
-            
+
             newLocalFile.delete();
         }
-        
+
     }
 
     /**
@@ -3056,33 +3054,34 @@ public class testVFS extends VTestCase {
     // Abstract Interface
     // ========================================================================
     // VFS methods which must be subclassed by VFS Implementation.
+
     /**
      * For 3rd party transfer !
      */
     public VRL getOtherRemoteLocation() {
         return this.otherRemoteLocation;
     }
-    
+
     protected void setTestRenames(boolean doRename) {
         this.testRenames = doRename;
     }
-    
+
     protected void setTestStrangeChars(boolean testStrange) {
         this.testStrangeChars = testStrange;
     }
-    
+
     protected void setTestWriteTests(boolean doWrites) {
         this.doWrites = doWrites;
     }
-    
+
     protected boolean getTestWriteTests() {
         return doWrites;
     }
-    
+
     protected void setTestDoBigTests(boolean doBigTests) {
         this.doBigTests = doBigTests;
     }
-    
+
     protected boolean getTestDoBigTests() {
         return doBigTests;
     }
@@ -3096,22 +3095,22 @@ public class testVFS extends VTestCase {
         } catch (Exception e) {
             message("*** Warning. Deleting remote test directory failed:" + e);
         }
-        
+
         try {
             this.localTempDir.delete(true);
         } catch (Exception e) {
             message("*** Warning. Deleting local test directory failed:" + e);
         }
     }
-    
+
     public void setRemoteTestDir(VDir remoteTestDir) {
         this.remoteTestDir = remoteTestDir;
     }
-    
+
     public VDir getRemoteTestDir() {
         return remoteTestDir;
     }
-    
+
     protected void setOtherRemoteLocation(VRL otherRemoteLocation) {
         this.otherRemoteLocation = otherRemoteLocation;
     }

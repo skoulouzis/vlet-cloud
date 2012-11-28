@@ -115,8 +115,8 @@ class SwiftCloudOutputStream extends OutputStream {
 
             put.setEntity(new ByteArrayEntity(out.toByteArray()));
 
-            client = new DefaultHttpClient(params);
-            wrapClient1 = wrapClient1(client);
+//            client = new DefaultHttpClient(params);
+//            wrapClient1 = wrapClient1(client);
             resp = wrapClient1.execute(put);
 
             if (resp.getStatusLine().getStatusCode() != 201) {
@@ -129,7 +129,7 @@ class SwiftCloudOutputStream extends OutputStream {
             if (resp != null) {
                 EntityUtils.consume(resp.getEntity());
             }
-            wrapClient1.getConnectionManager().closeExpiredConnections();
+//            wrapClient1.getConnectionManager().closeExpiredConnections();
         }
     }
 
@@ -147,8 +147,8 @@ class SwiftCloudOutputStream extends OutputStream {
             put.setHeader("X-Object-Manifest", container + "/" + blobName);
             put.setHeader(authToken);
 
-            client = new DefaultHttpClient(params);
-            wrapClient1 = wrapClient1(client);
+//            client = new DefaultHttpClient(params);
+//            wrapClient1 = wrapClient1(client);
             resp = wrapClient1.execute(put);
 
             if (resp.getStatusLine().getStatusCode() != 201) {
@@ -189,8 +189,10 @@ class SwiftCloudOutputStream extends OutputStream {
 
         putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
 
-        client = new DefaultHttpClient(params);
-        wrapClient1 = wrapClient1(client);
+        EntityUtils.consume(resp.getEntity());
+
+//        client = new DefaultHttpClient(params);
+//        wrapClient1 = wrapClient1(client);
     }
 
     private org.apache.http.client.HttpClient wrapClient1(org.apache.http.client.HttpClient base) {
