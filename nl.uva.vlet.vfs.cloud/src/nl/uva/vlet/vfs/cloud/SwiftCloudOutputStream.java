@@ -4,20 +4,26 @@
  */
 package nl.uva.vlet.vfs.cloud;
 
-import java.io.*;
+import com.sun.management.OperatingSystemMXBean;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.LinkedList;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -29,10 +35,12 @@ import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.util.EntityUtils;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.rest.RestContext;
+
 
 /**
  *
@@ -63,8 +71,11 @@ class SwiftCloudOutputStream extends OutputStream {
         this.asyncBlobStore = asyncBlobStore;
         out = new ByteArrayOutputStream();
         this.key = key;
-//        limit = (1 * 1024 * 1024) + (int) (Math.random() * (30 * 1024 * 1024));
-        limit = 50 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        
+        OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+//        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / 1024 + " kB");
+
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 15);  //20 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
     }
 
     @Override
@@ -127,11 +138,6 @@ class SwiftCloudOutputStream extends OutputStream {
         } finally {
             bytesWriten = 0;
             counter++;
-            if (limit > (1024 * 1024)) {
-                limit = limit - counter * 1024;
-            } else {
-            }
-            System.err.println("New Limit: " + (limit / (1024.0 * 1024.0)) + " MB");
             out.reset();
         }
     }
@@ -177,11 +183,11 @@ class SwiftCloudOutputStream extends OutputStream {
 
     private void initHttpClient(String key) throws IOException {
         params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
-        params.setParameter("http.socket.timeout", 10000);
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 30000);
+        params.setParameter("http.socket.timeout", 30000);
 
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
-        cm.setMaxTotal(50);
+        cm.setMaxTotal(200);
 
         client = new DefaultHttpClient(cm, params);
         wrapClient1 = wrapClient(client);
@@ -209,7 +215,7 @@ class SwiftCloudOutputStream extends OutputStream {
 
 
         int cpus = Runtime.getRuntime().availableProcessors();
-        int maxThreads = cpus * 4;
+        int maxThreads = cpus * 2;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
         executorService = new ThreadPoolExecutor(
@@ -267,9 +273,6 @@ class SwiftCloudOutputStream extends OutputStream {
 
         private final HttpClient client;
         private HttpPut put;
-        private static double count = 0;
-        private static double avSpeed = 0;
-
         private PutRunnable(HttpClient client) {
             this.client = client;
         }
@@ -279,13 +282,15 @@ class SwiftCloudOutputStream extends OutputStream {
             HttpResponse resp = null;
             try {
 
-                long start = System.currentTimeMillis();
+//                long start = System.currentTimeMillis();
                 resp = client.execute(put);
-                long end = System.currentTimeMillis();
-                long time = end - start;
-                long len = put.getEntity().getContentLength();
-                double speed = (len / 1024.0) / (time * 1000.0);
-                System.out.println("Speed: " + speed);
+//                long end = System.currentTimeMillis();
+//                double time = (end - start) / 1000.0;
+//                double len = put.getEntity().getContentLength() / 1024.0;
+//                System.out.println("len: " + len);
+//                System.out.println("time: " + time);
+//                double speed = (len) / (time);
+//                System.out.println("Speed: " + speed + "kb/s");
 //                count++;
 //                avSpeed = (avSpeed + speed) / count;
 
