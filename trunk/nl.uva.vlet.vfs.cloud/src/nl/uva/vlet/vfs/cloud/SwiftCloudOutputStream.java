@@ -75,7 +75,7 @@ class SwiftCloudOutputStream extends OutputStream {
         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 //        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / 1024 + " kB");
 
-        limit = (int) (osMBean.getFreePhysicalMemorySize() / 15);  //20 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 20);  //20 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
     }
 
     @Override
@@ -161,7 +161,7 @@ class SwiftCloudOutputStream extends OutputStream {
 
         } finally {
             int count = executorService.getActiveCount();
-            System.err.println("Before Still running: " + count);
+//            System.err.println("Before Still running: " + count);
             executorService.shutdown();
 //            System.err.println("After Still running: " + count);
             long sleepTime = 50;
@@ -169,10 +169,10 @@ class SwiftCloudOutputStream extends OutputStream {
 //            while (count >= 1) {
                 count = executorService.getActiveCount();
                 sleepTime = 25 * count;
-                System.err.println("Still running: " + count + " sleeping for :" + sleepTime);
+//                System.err.println("Still running: " + count + " sleeping for :" + sleepTime);
                 Thread.sleep(sleepTime);
             }
-            System.err.println("Still running: " + executorService.getActiveCount());
+//            System.err.println("Still running: " + executorService.getActiveCount());
             if (resp != null) {
                 EntityUtils.consume(resp.getEntity());
             }
@@ -187,7 +187,8 @@ class SwiftCloudOutputStream extends OutputStream {
         params.setParameter("http.socket.timeout", 30000);
 
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
-        cm.setMaxTotal(200);
+        cm.setMaxTotal(500);
+        cm.setDefaultMaxPerRoute(500);
 
         client = new DefaultHttpClient(cm, params);
         wrapClient1 = wrapClient(client);
@@ -214,8 +215,8 @@ class SwiftCloudOutputStream extends OutputStream {
 
 
 
-        int cpus = Runtime.getRuntime().availableProcessors();
-        int maxThreads = cpus * 2;
+//        int cpus = Runtime.getRuntime().availableProcessors();
+        int maxThreads = 2;//cpus * 1;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
         executorService = new ThreadPoolExecutor(
