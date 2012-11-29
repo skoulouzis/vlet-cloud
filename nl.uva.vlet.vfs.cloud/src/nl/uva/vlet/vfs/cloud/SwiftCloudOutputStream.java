@@ -64,7 +64,7 @@ class SwiftCloudOutputStream extends OutputStream {
         out = new ByteArrayOutputStream();
         this.key = key;
 //        limit = (1 * 1024 * 1024) + (int) (Math.random() * (30 * 1024 * 1024));
-                limit =  5*1024*1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        limit = 20 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
     }
 
     @Override
@@ -127,8 +127,11 @@ class SwiftCloudOutputStream extends OutputStream {
         } finally {
             bytesWriten = 0;
             counter++;
-//            limit = limit - counter*1024;
-//            System.err.println("New Limit: " + (limit / (1024.0 * 1024.0)) + " MB");
+            if (limit > (1024 * 1024)) {
+                limit = limit - counter * 1024;
+            } else {
+            }
+            System.err.println("New Limit: " + (limit / (1024.0 * 1024.0)) + " MB");
             out.reset();
         }
     }
