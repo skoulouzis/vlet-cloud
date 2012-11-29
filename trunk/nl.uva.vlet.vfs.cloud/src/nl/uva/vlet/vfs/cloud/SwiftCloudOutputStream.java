@@ -64,7 +64,7 @@ class SwiftCloudOutputStream extends OutputStream {
         out = new ByteArrayOutputStream();
         this.key = key;
 //        limit = (1 * 1024 * 1024) + (int) (Math.random() * (30 * 1024 * 1024));
-        limit = 20 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        limit = 50 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
     }
 
     @Override
