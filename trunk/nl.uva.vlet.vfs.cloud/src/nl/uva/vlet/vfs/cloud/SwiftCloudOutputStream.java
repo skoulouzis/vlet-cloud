@@ -41,7 +41,6 @@ import org.apache.http.util.EntityUtils;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.rest.RestContext;
 
-
 /**
  *
  * @author skoulouz
@@ -63,6 +62,8 @@ class SwiftCloudOutputStream extends OutputStream {
     private int counter = 1;
     private ThreadPoolExecutor executorService;
     private static int limit;
+    private static final int timeout = 60000;
+    private int maxThreads;
 
     public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) {
 
@@ -71,11 +72,15 @@ class SwiftCloudOutputStream extends OutputStream {
         this.asyncBlobStore = asyncBlobStore;
         out = new ByteArrayOutputStream();
         this.key = key;
-        
+
         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 //        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / 1024 + " kB");
 
-        limit = (int) (osMBean.getFreePhysicalMemorySize() / 20);  //20 * 1024 * 1024;//Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 100);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+//        System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB");
+        int cpus = Runtime.getRuntime().availableProcessors();
+        maxThreads = cpus * 2;
+        maxThreads = (maxThreads > 0 ? maxThreads : 1);
     }
 
     @Override
@@ -183,8 +188,8 @@ class SwiftCloudOutputStream extends OutputStream {
 
     private void initHttpClient(String key) throws IOException {
         params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 30000);
-        params.setParameter("http.socket.timeout", 30000);
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, timeout);
+        params.setParameter("http.socket.timeout", timeout);
 
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
         cm.setMaxTotal(500);
@@ -197,7 +202,7 @@ class SwiftCloudOutputStream extends OutputStream {
         URI endpoint = ctx.getEndpoint();
 
         HttpGet getMethod = new HttpGet(endpoint);
-        getMethod.getParams().setIntParameter("http.socket.timeout", 30000);
+        getMethod.getParams().setIntParameter("http.socket.timeout", timeout);
         getMethod.setHeader("x-auth-user", ctx.getIdentity());
         getMethod.setHeader("x-auth-key", key);
         HttpResponse resp = wrapClient1.execute(getMethod);
@@ -213,11 +218,6 @@ class SwiftCloudOutputStream extends OutputStream {
         putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
         EntityUtils.consume(resp.getEntity());
 
-
-
-//        int cpus = Runtime.getRuntime().availableProcessors();
-        int maxThreads = 2;//cpus * 1;
-        maxThreads = (maxThreads > 0 ? maxThreads : 1);
         ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
         executorService = new ThreadPoolExecutor(
                 maxThreads, // core thread pool size
@@ -274,6 +274,7 @@ class SwiftCloudOutputStream extends OutputStream {
 
         private final HttpClient client;
         private HttpPut put;
+
         private PutRunnable(HttpClient client) {
             this.client = client;
         }

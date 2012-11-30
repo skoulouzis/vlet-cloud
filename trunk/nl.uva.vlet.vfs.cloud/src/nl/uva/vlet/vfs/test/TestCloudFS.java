@@ -692,7 +692,7 @@ public class TestCloudFS {
         {
             try {
                 localFile = localTempDir.createFile("test10MBmove");
-                int len = 50;
+                int len = 60;
 
                 // create random file: fixed seed for reproducable tests
                 //            Random generator = new Random(13);            
@@ -766,6 +766,7 @@ public class TestCloudFS {
 //                }
 
                 newLocalFile.delete();
+                remoteFile.delete();
             } catch (VlException ex) {
                 Logger.getLogger(TestCloudFS.class.getName()).log(Level.SEVERE, null, ex);
             }
