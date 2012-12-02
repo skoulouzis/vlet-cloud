@@ -76,11 +76,11 @@ class SwiftCloudOutputStream extends OutputStream {
         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 //        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / 1024 + " kB");
 
-        limit = (int) (osMBean.getFreePhysicalMemorySize() / 100);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
-//        System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB");
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 10);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
         int cpus = Runtime.getRuntime().availableProcessors();
-        maxThreads = cpus * 2;
+        maxThreads =cpus * 1;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
+        System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
     }
 
     @Override
@@ -137,9 +137,16 @@ class SwiftCloudOutputStream extends OutputStream {
             put.setHeader(authToken);
             put.setEntity(new ByteArrayEntity(out.toByteArray()));
 
-            PutRunnable putTask = new PutRunnable(wrapClient1);
-            putTask.setPut(put);
-            executorService.submit(putTask);
+            HttpResponse resp = wrapClient1.execute(put);
+
+            if (resp.getStatusLine().getStatusCode() != 201) {
+                throw new IOException(resp.toString());
+            }
+            EntityUtils.consume(resp.getEntity());
+
+//            PutRunnable putTask = new PutRunnable(wrapClient1);
+//            putTask.setPut(put);
+//            executorService.submit(putTask);
         } finally {
             bytesWriten = 0;
             counter++;
@@ -166,7 +173,7 @@ class SwiftCloudOutputStream extends OutputStream {
 
         } finally {
             int count = executorService.getActiveCount();
-//            System.err.println("Before Still running: " + count);
+            System.err.println("Before Still running: " + count);
             executorService.shutdown();
 //            System.err.println("After Still running: " + count);
             long sleepTime = 50;
