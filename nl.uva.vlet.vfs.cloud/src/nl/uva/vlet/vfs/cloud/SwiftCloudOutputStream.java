@@ -64,7 +64,7 @@ class SwiftCloudOutputStream extends OutputStream {
     private int maxThreads;
     private PoolingClientConnectionManager cm;
 
-    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) {
+    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
 
         this.container = container;
         this.blobName = blobName;
@@ -77,9 +77,11 @@ class SwiftCloudOutputStream extends OutputStream {
 
         limit = (int) (osMBean.getFreePhysicalMemorySize() / 50);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
         int cpus = Runtime.getRuntime().availableProcessors();
-        maxThreads = cpus * 1;
+        maxThreads = cpus * 4;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
+        
+         setManifestFile();
     }
 
     @Override
@@ -117,14 +119,27 @@ class SwiftCloudOutputStream extends OutputStream {
     @Override
     public void close() throws IOException {
         try {
+            if (out.size() > 0 || out.toByteArray().length > 0) {
+                uploadChunk();
+            }
             out.close();
-            setManifestFile();
-            //        blobContext.close();
-        } catch (ExecutionException ex) {
-            throw new IOException(ex);
+
+            int count = executorService.getActiveCount();
+            System.err.println("Before Still running: " + count);
+            executorService.shutdown();
+            long sleepTime = 50;
+            while (!executorService.awaitTermination(2, TimeUnit.HOURS)) {
+                //            while (count >= 1) {
+                count = executorService.getActiveCount();
+                sleepTime = 25 * count;
+                Thread.sleep(sleepTime);
+            }
+            this.cm.closeExpiredConnections();
+            counter = 0;
         } catch (InterruptedException ex) {
             throw new IOException(ex);
         }
+
     }
 
     private void uploadChunk() throws FileNotFoundException, IOException {
@@ -147,43 +162,16 @@ class SwiftCloudOutputStream extends OutputStream {
     }
 
     private void setManifestFile() throws IOException, InterruptedException, ExecutionException {
-        if (out.size() > 0 || out.toByteArray().length > 0) {
-            uploadChunk();
-        }
         if (authToken == null) {
             initHttpClient(this.key);
         }
-        HttpResponse resp = null;
-        try {
-            HttpPut put = new HttpPut(putURL);
-            put.setHeader("X-Object-Manifest", container + "/" + blobName);
-            put.setHeader(authToken);
+        HttpPut put = new HttpPut(putURL);
+        put.setHeader("X-Object-Manifest", container + "/" + blobName);
+        put.setHeader(authToken);
 
-
-            PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
-            putTask.setPut(put);
-            executorService.submit(putTask);
-
-        } finally {
-            int count = executorService.getActiveCount();
-            System.err.println("Before Still running: " + count);
-            executorService.shutdown();
-//            System.err.println("After Still running: " + count);
-            long sleepTime = 50;
-            while (!executorService.awaitTermination(2, TimeUnit.HOURS)) {
-//            while (count >= 1) {
-                count = executorService.getActiveCount();
-                sleepTime = 25 * count;
-//                System.err.println("Still running: " + count + " sleeping for :" + sleepTime);
-                Thread.sleep(sleepTime);
-            }
-//            System.err.println("Still running: " + executorService.getActiveCount());
-            if (resp != null) {
-                EntityUtils.consume(resp.getEntity());
-            }
-            this.cm.closeExpiredConnections();
-            counter = 0;
-        }
+        PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
+        putTask.setPut(put);
+        executorService.submit(putTask);
     }
 
     private void initHttpClient(String key) throws IOException {
@@ -249,7 +237,7 @@ class SwiftCloudOutputStream extends OutputStream {
         return ssf;
     }
 
-    private  SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
+    private SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager tm = new X509TrustManager() {
 

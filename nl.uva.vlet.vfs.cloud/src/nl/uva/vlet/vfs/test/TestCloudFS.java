@@ -140,9 +140,9 @@ public class TestCloudFS {
 
 //            testSwiftCloudOutputStream();
 
-//            testMove10MBForthAndBack();
+            testMove10MBForthAndBack();
 
-            testGetInputStream();
+//            testGetInputStream();
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -717,7 +717,7 @@ public class TestCloudFS {
         {
             try {
                 localFile = localTempDir.createFile("test10MBmove");
-                int len = 20;
+                int len = 500;
 
                 byte buffer[] = new byte[len];
                 for (int i = 0; i < buffer.length; i++) {
@@ -784,14 +784,14 @@ public class TestCloudFS {
                 ins = newLocalFile.getInputStream();
                 int rRen = 0;
                 int readDowncount = 0;
-                while ((rRen = ins.read(buffer)) != -1) {
-                    for (int i = 0; i < rRen; i++) {
-                        if (buffer[i] == 1) {
-                            readDowncount++;
-                        }
+//                while ((rRen = ins.read(buffer)) != -1) {
+//                    for (int i = 0; i < rRen; i++) {
+//                        if (buffer[i] == 1) {
+//                            readDowncount++;
+//                        }
 //                        System.out.println("ReadDownload: " + readDowncount + " " + buffer[i]);
-                    }
-                }
+//                    }
+//                }
 
 //                if (sendCount != readDowncount) {
 //                    System.out.println("Expected: " + sendCount + " got: " + readDowncount);
