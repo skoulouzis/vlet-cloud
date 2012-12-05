@@ -528,30 +528,11 @@ public class CloudFileSystem extends FileSystemNode {
 
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0],
                     containerAndPath[1]);
-//            ListenableFuture<PageSet<? extends StorageMetadata>> listRes = asyncBlobStore.list(containerAndPath[0],
-//                    Builder.inDirectory(containerAndPath[1]));
 
             block(res);
             Blob blob = res.get();
 
             Payload payload = blob.getPayload();
-
-            Long len = payload.getContentMetadata().getContentLength();
-            debug("Payload length: " + len);
-//            Multimap<String, String> h = blob.getAllHeaders();
-//            Iterator<String> iter = h.keys().iterator();
-//            while (iter.hasNext()) {
-//                String key = iter.next();
-//                debug(key + " : " + h.get(key));
-//            }
-
-
-
-//            PageSet<? extends StorageMetadata> list = listRes.get();
-//            if (meta.getType().equals(StorageType.BLOB)) {
-//            }
-
-
             return payload.getInput();
 
         } finally {
