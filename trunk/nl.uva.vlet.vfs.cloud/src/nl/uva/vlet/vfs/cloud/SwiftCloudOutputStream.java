@@ -64,7 +64,7 @@ class SwiftCloudOutputStream extends OutputStream {
     private int maxThreads;
     private PoolingClientConnectionManager cm;
 
-    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
+    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) {
 
         this.container = container;
         this.blobName = blobName;
@@ -80,9 +80,6 @@ class SwiftCloudOutputStream extends OutputStream {
         maxThreads = cpus * 1;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
-
-        setManifestFile();
-
     }
 
     @Override
@@ -119,10 +116,15 @@ class SwiftCloudOutputStream extends OutputStream {
 
     @Override
     public void close() throws IOException {
-        if (out.size() > 0 || out.toByteArray().length > 0) {
-            uploadChunk();
+        try {
+            out.close();
+            setManifestFile();
+            //        blobContext.close();
+        } catch (ExecutionException ex) {
+            throw new IOException(ex);
+        } catch (InterruptedException ex) {
+            throw new IOException(ex);
         }
-        out.close();
     }
 
     private void uploadChunk() throws FileNotFoundException, IOException {
@@ -145,6 +147,9 @@ class SwiftCloudOutputStream extends OutputStream {
     }
 
     private void setManifestFile() throws IOException, InterruptedException, ExecutionException {
+        if (out.size() > 0 || out.toByteArray().length > 0) {
+            uploadChunk();
+        }
         if (authToken == null) {
             initHttpClient(this.key);
         }
@@ -244,7 +249,7 @@ class SwiftCloudOutputStream extends OutputStream {
         return ssf;
     }
 
-    private SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
+    private  SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager tm = new X509TrustManager() {
 
