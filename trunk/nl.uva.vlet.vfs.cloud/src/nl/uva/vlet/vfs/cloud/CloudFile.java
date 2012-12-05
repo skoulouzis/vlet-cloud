@@ -6,7 +6,10 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nl.uva.vlet.data.StringUtil;
+import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VChecksum;
 import nl.uva.vlet.vfs.VFile;
@@ -42,11 +45,15 @@ public class CloudFile extends VFile implements VChecksum {
     }
 
     @Override
-    public OutputStream getOutputStream() throws VlException {
+    public OutputStream getOutputStream() throws VlException, VRLSyntaxException {
         try {
             return cvfs.getOutputStream(getVRL());
         } catch (IOException e) {
             throw new nl.uva.vlet.exception.VlIOException(e);
+        } catch (InterruptedException ex) {
+            throw new nl.uva.vlet.exception.VlException(ex);
+        } catch (ExecutionException ex) {
+            throw new nl.uva.vlet.exception.VlException(ex);
         }
     }
 

@@ -1,5 +1,6 @@
 package nl.uva.vlet.vfs.cloud;
 
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -29,6 +31,7 @@ import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 import org.jclouds.filesystem.reference.FilesystemConstants;
+import org.jclouds.io.Payload;
 
 /**
  *
@@ -525,17 +528,38 @@ public class CloudFileSystem extends FileSystemNode {
 
             ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0],
                     containerAndPath[1]);
+//            ListenableFuture<PageSet<? extends StorageMetadata>> listRes = asyncBlobStore.list(containerAndPath[0],
+//                    Builder.inDirectory(containerAndPath[1]));
+
             block(res);
             Blob blob = res.get();
 
-            return blob.getPayload().getInput();
+            Payload payload = blob.getPayload();
+
+            Long len = payload.getContentMetadata().getContentLength();
+            debug("Payload length: " + len);
+//            Multimap<String, String> h = blob.getAllHeaders();
+//            Iterator<String> iter = h.keys().iterator();
+//            while (iter.hasNext()) {
+//                String key = iter.next();
+//                debug(key + " : " + h.get(key));
+//            }
+
+
+
+//            PageSet<? extends StorageMetadata> list = listRes.get();
+//            if (meta.getType().equals(StorageType.BLOB)) {
+//            }
+
+
+            return payload.getInput();
 
         } finally {
             //blobContext.close();
         }
     }
 
-    public OutputStream getOutputStream(VRL vrl) throws VRLSyntaxException, IOException {
+    public OutputStream getOutputStream(VRL vrl) throws VRLSyntaxException, IOException, InterruptedException, ExecutionException {
 
         String[] containerAndPath = getContainerAndPath(vrl);
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
@@ -592,7 +616,7 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private void debug(String msg) {
-//        System.err.println(this.getClass().getName() + ": " + msg);
+        System.err.println(this.getClass().getName() + ": " + msg);
 //        System.out.println(this.getClass().getName() + ": " + msg);
         logger.debugPrintf(msg + "\n");
 //        Global.debugPrintf(this, msg + "\n");
