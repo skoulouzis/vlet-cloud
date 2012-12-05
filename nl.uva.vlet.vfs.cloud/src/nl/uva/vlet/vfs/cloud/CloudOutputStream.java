@@ -47,8 +47,8 @@ public class CloudOutputStream extends OutputStream {
         try {
             //Get blob asynchronously
             Blob blob = res.get();
-            Multimap<String, String> head = null;
-            blob.setAllHeaders(head);
+//            Multimap<String, String> head = null;
+//            blob.setAllHeaders(head);
             if (blob == null) {
                 blob = asyncBlobStore.blobBuilder(blobName).build();
             }
@@ -115,6 +115,7 @@ public class CloudOutputStream extends OutputStream {
         if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
             bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
+            bufferFile.deleteOnExit();
 
             fos.write(((ByteArrayOutputStream) out).toByteArray());
             out.flush();

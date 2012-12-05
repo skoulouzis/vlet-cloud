@@ -54,8 +54,6 @@ class SwiftCloudOutputStream extends OutputStream {
     private Header authToken;
     private final String key;
     private BasicHttpParams params;
-    private DefaultHttpClient client;
-    private HttpClient wrapClient1;
     private final AsyncBlobStore asyncBlobStore;
     private Header storageURLHeader;
     private String putURL;
@@ -64,8 +62,9 @@ class SwiftCloudOutputStream extends OutputStream {
     private static int limit;
     private static final int timeout = 60000;
     private int maxThreads;
+    private PoolingClientConnectionManager cm;
 
-    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) {
+    public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
 
         this.container = container;
         this.blobName = blobName;
@@ -74,13 +73,16 @@ class SwiftCloudOutputStream extends OutputStream {
         this.key = key;
 
         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-//        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / 1024 + " kB");
+        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / (1024.0 * 1024.0) + " MB");
 
-        limit = (int) (osMBean.getFreePhysicalMemorySize() / 10);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 50);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
         int cpus = Runtime.getRuntime().availableProcessors();
-        maxThreads =cpus * 1;
+        maxThreads = cpus * 1;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
+
+        setManifestFile();
+
     }
 
     @Override
@@ -117,15 +119,10 @@ class SwiftCloudOutputStream extends OutputStream {
 
     @Override
     public void close() throws IOException {
-        try {
-            out.close();
-            setManifestFile();
-            //        blobContext.close();
-        } catch (ExecutionException ex) {
-            throw new IOException(ex);
-        } catch (InterruptedException ex) {
-            throw new IOException(ex);
+        if (out.size() > 0 || out.toByteArray().length > 0) {
+            uploadChunk();
         }
+        out.close();
     }
 
     private void uploadChunk() throws FileNotFoundException, IOException {
@@ -137,16 +134,9 @@ class SwiftCloudOutputStream extends OutputStream {
             put.setHeader(authToken);
             put.setEntity(new ByteArrayEntity(out.toByteArray()));
 
-            HttpResponse resp = wrapClient1.execute(put);
-
-            if (resp.getStatusLine().getStatusCode() != 201) {
-                throw new IOException(resp.toString());
-            }
-            EntityUtils.consume(resp.getEntity());
-
-//            PutRunnable putTask = new PutRunnable(wrapClient1);
-//            putTask.setPut(put);
-//            executorService.submit(putTask);
+            PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
+            putTask.setPut(put);
+            executorService.submit(putTask);
         } finally {
             bytesWriten = 0;
             counter++;
@@ -155,9 +145,6 @@ class SwiftCloudOutputStream extends OutputStream {
     }
 
     private void setManifestFile() throws IOException, InterruptedException, ExecutionException {
-        if (out.size() > 0 || out.toByteArray().length > 0) {
-            uploadChunk();
-        }
         if (authToken == null) {
             initHttpClient(this.key);
         }
@@ -167,7 +154,8 @@ class SwiftCloudOutputStream extends OutputStream {
             put.setHeader("X-Object-Manifest", container + "/" + blobName);
             put.setHeader(authToken);
 
-            PutRunnable putTask = new PutRunnable(wrapClient1);
+
+            PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
             putTask.setPut(put);
             executorService.submit(putTask);
 
@@ -188,7 +176,7 @@ class SwiftCloudOutputStream extends OutputStream {
             if (resp != null) {
                 EntityUtils.consume(resp.getEntity());
             }
-            wrapClient1.getConnectionManager().closeExpiredConnections();
+            this.cm.closeExpiredConnections();
             counter = 0;
         }
     }
@@ -198,13 +186,6 @@ class SwiftCloudOutputStream extends OutputStream {
         org.apache.http.params.HttpConnectionParams.setSoTimeout(params, timeout);
         params.setParameter("http.socket.timeout", timeout);
 
-        PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
-        cm.setMaxTotal(500);
-        cm.setDefaultMaxPerRoute(500);
-
-        client = new DefaultHttpClient(cm, params);
-        wrapClient1 = wrapClient(client);
-
         RestContext<Object, Object> ctx = asyncBlobStore.getContext().getProviderSpecificContext();
         URI endpoint = ctx.getEndpoint();
 
@@ -212,6 +193,13 @@ class SwiftCloudOutputStream extends OutputStream {
         getMethod.getParams().setIntParameter("http.socket.timeout", timeout);
         getMethod.setHeader("x-auth-user", ctx.getIdentity());
         getMethod.setHeader("x-auth-key", key);
+
+        cm = new PoolingClientConnectionManager();
+        cm.setMaxTotal(500);
+        cm.setDefaultMaxPerRoute(500);
+        DefaultHttpClient client = new DefaultHttpClient(cm, params);
+        HttpClient wrapClient1 = wrapClient(client);
+
         HttpResponse resp = wrapClient1.execute(getMethod);
         if (resp.getStatusLine().getStatusCode() != 200) {
             throw new IOException(resp.getStatusLine().toString());
@@ -256,7 +244,7 @@ class SwiftCloudOutputStream extends OutputStream {
         return ssf;
     }
 
-    private static SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
+    private SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager tm = new X509TrustManager() {
 

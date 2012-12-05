@@ -1,6 +1,11 @@
 package nl.uva.vlet.vfs.test;
 
 import java.io.*;
+import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_EXISTS;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_HOSTNAME;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_LENGTH;
@@ -13,10 +18,12 @@ import static nl.uva.vlet.data.VAttributeConstants.ATTR_SCHEME;
 import static nl.uva.vlet.data.VAttributeConstants.ATTR_TYPE;
 
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import junit.framework.Assert;
 import nl.uva.vlet.ClassLogger;
@@ -24,6 +31,7 @@ import nl.uva.vlet.exception.ResourceAlreadyExistsException;
 import nl.uva.vlet.exception.ResourceCreationFailedException;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
+import nl.uva.vlet.io.CircularStreamBufferTransferer;
 import nl.uva.vlet.vfs.VDir;
 import nl.uva.vlet.vfs.VFSClient;
 import nl.uva.vlet.vfs.VFSNode;
@@ -36,7 +44,20 @@ import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
 import nl.uva.vlet.vrs.VRS;
 import nl.uva.vlet.vrs.VRSContext;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.util.EntityUtils;
 import org.jclouds.blobstore.domain.StorageType;
+import org.jclouds.rest.RestContext;
 
 public class TestCloudFS {
 
@@ -67,6 +88,8 @@ public class TestCloudFS {
     private static VDir testRemoteDir;
     private static VDir localTempDir;
     private static VRL localTempDirVrl = TestSettings.getTestLocation(TestSettings.VFS_LOCAL_TEMPDIR_LOCATION);
+    private static String uname;
+    private static String key;
 
     /**
      * @param args
@@ -117,7 +140,9 @@ public class TestCloudFS {
 
 //            testSwiftCloudOutputStream();
 
-            testMove10MBForthAndBack();
+//            testMove10MBForthAndBack();
+
+            testGetInputStream();
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -339,8 +364,8 @@ public class TestCloudFS {
         info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
 
 
-        String uname = getCloudProperties().getProperty("jclouds.identity");
-        String key = getCloudProperties().getProperty("jclouds.credential");
+        uname = getCloudProperties().getProperty("jclouds.identity");
+        key = getCloudProperties().getProperty("jclouds.credential");
 
 
         info.setUsername(uname);
@@ -688,18 +713,15 @@ public class TestCloudFS {
 
         VFile localFile = null;
         VFile remoteFile = null;
-
+        VFile newLocalFile = null;
         {
             try {
                 localFile = localTempDir.createFile("test10MBmove");
-                int len = 10;
+                int len = 20;
 
-                // create random file: fixed seed for reproducable tests
-                //            Random generator = new Random(13);            
-                //            generator.nextBytes(buffer);
                 byte buffer[] = new byte[len];
                 for (int i = 0; i < buffer.length; i++) {
-                    buffer[i] = (byte) i;
+                    buffer[i] = (byte) (i + 1);
                 }
                 System.out.println("streamWriting to localfile:" + localFile);
                 OutputStream out = localFile.getOutputStream();
@@ -709,66 +731,86 @@ public class TestCloudFS {
                 out.flush();
                 out.close();
                 len = (int) localFile.getLength();
-//                localFile.streamWrite(buffer, 0, buffer.length);
+                InputStream ins = localFile.getInputStream();
+                int rLen = 0;
+                int writeCount = 0;
+                while ((rLen = ins.read(buffer)) != -1) {
+                    for (int i = 0; i < rLen; i++) {
+                        if (buffer[i] == 1) {
+                            writeCount++;
+                        }
+//                        System.out.println("WriteLocal: " + writeCount + " " + buffer[i]);
+                    }
+                }
 
                 // move to remote (and do same basic asserts).
                 long start_time = System.currentTimeMillis();
                 System.out.println("moving localfile to:" + getRemoteTestDir());
-                remoteFile = localFile.moveTo(getRemoteTestDir());
+                remoteFile = localFile.copyTo(getRemoteTestDir());
                 long total_millis = System.currentTimeMillis() - start_time;
                 double up_speed = (len / 1024.0) / (total_millis / 1000.0);
                 System.out.println("upload speed=" + ((int) (up_speed * 1000)) / 1000.0
                         + "KB/s");
 
-                System.out.println("new remote file=" + remoteFile);
 
-                Assert.assertNotNull("new remote File is NULL", remoteFile);
-                Assert.assertTrue(
-                        "after move to remote testdir, remote file doesn't exist:"
-                        + remoteFile, remoteFile.exists());
-                Assert.assertFalse(
-                        "local file reports it still exists, after it has moved",
-                        localFile.exists());
+                if (localFile.getLength() != remoteFile.getLength()) {
+                    System.err.println("Expected: " + localFile.getLength() + " got: " + remoteFile.getLength());
+                    throw new Exception("Expected: " + localFile.getLength() + " got: " + remoteFile.getLength());
+                }
 
-                // move back to local with new name (and do same basic asserts).
                 start_time = System.currentTimeMillis();
 
-                VFile newLocalFile = remoteFile.moveTo(localTempDir,
-                        "test10MBback");
-                Assert.assertNotNull("new local File is NULL", newLocalFile);
-                Assert.assertFalse(
-                        "remote file reports it still exists, after it has moved",
-                        remoteFile.exists());
+                newLocalFile = localTempDir.createFile("test10MBback");
+                CircularStreamBufferTransferer csbt = new CircularStreamBufferTransferer(1024, remoteFile.getInputStream(), newLocalFile.getOutputStream());
+                csbt.startTransfer(-1);
+
+
                 total_millis = System.currentTimeMillis() - start_time;
 
                 double down_speed = (len / 1024.0) / (total_millis / 1000.0);
                 System.out.println("download speed=" + ((int) (down_speed * 1000)) / 1000.0
                         + "KB/s");
 
-                // check contents:
+                if (newLocalFile.getLength() != remoteFile.getLength()) {
+                    System.err.println("Expected: " + newLocalFile.getLength() + " got: " + remoteFile.getLength());
+                    throw new Exception("Expected: " + newLocalFile.getLength() + " got: " + remoteFile.getLength());
+                }
 
-                byte newcontents[] = newLocalFile.getContents();
-                int newlen = newcontents.length;
+                if (newLocalFile.getLength() != localFile.getLength()) {
+                    System.err.println("Expected: " + localFile.getLength() + " got: " + newLocalFile.getLength());
+                    throw new Exception("Expected: " + localFile.getLength() + " got: " + newLocalFile.getLength());
+                }
+
+                ins = newLocalFile.getInputStream();
+                int rRen = 0;
+                int readDowncount = 0;
+                while ((rRen = ins.read(buffer)) != -1) {
+                    for (int i = 0; i < rRen; i++) {
+                        if (buffer[i] == 1) {
+                            readDowncount++;
+                        }
+//                        System.out.println("ReadDownload: " + readDowncount + " " + buffer[i]);
+                    }
+                }
+
+//                if (sendCount != readDowncount) {
+//                    System.out.println("Expected: " + sendCount + " got: " + readDowncount);
+//                    throw new Exception("Expected: " + sendCount + " got: " + readDowncount);
+//                }
+
                 // check size:
-//                if (len != newlen) {
-//                    System.out.println("Expected: " + len + " got: " + newlen);
-//                    throw new Exception("Expected: " + len + " got: " + newlen);
-//                }
+                if (remoteFile.getLength() != newLocalFile.getLength()) {
+                    System.err.println("-----Expected: " + remoteFile.getLength() + " got: " + newLocalFile.getLength());
+                    throw new Exception("Expected: " + remoteFile.getLength() + " got: " + newLocalFile.getLength());
+                }
 
 
-//                // compare contents
-//                for (int i = 0; i < len; i++) {
-//                    if (buffer[i] != newcontents[i]) {
-//                        Assert.assertEquals(
-//                                "Contents of file not the same. Byte nr=" + i,
-//                                buffer[i], newcontents[i]);
-//                    }
-//                }
 
-                newLocalFile.delete();
-                remoteFile.delete();
             } catch (VlException ex) {
                 Logger.getLogger(TestCloudFS.class.getName()).log(Level.SEVERE, null, ex);
+            } finally {
+                newLocalFile.delete();
+                remoteFile.delete();
             }
         }
 
@@ -792,5 +834,85 @@ public class TestCloudFS {
         properties.load(new FileInputStream(f));
 
         return properties;
+    }
+
+    private static void testGetInputStream() throws IOException {
+        BasicHttpParams params = new BasicHttpParams();
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 30000);
+        params.setParameter("http.socket.timeout", 30000);
+
+
+
+        HttpGet getMethod = new HttpGet("https://149.156.10.131:8443/auth/v1.0/");
+        getMethod.getParams().setIntParameter("http.socket.timeout", 30000);
+        getMethod.setHeader("x-auth-user", uname);
+        getMethod.setHeader("x-auth-key", key);
+        PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
+
+        DefaultHttpClient client = new DefaultHttpClient(cm, params);
+        HttpClient wrapClient1 = wrapClient(client);
+
+        HttpResponse resp = wrapClient1.execute(getMethod);
+        if (resp.getStatusLine().getStatusCode() != 200) {
+            throw new IOException(resp.getStatusLine().toString());
+        }
+        Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        Header authToken = resp.getFirstHeader("X-Auth-Token");
+
+        
+        getMethod = new HttpGet(storageURLHeader.getValue()+"/a4958c90-e0bb-4b0e-be3b-517c6e2c1629-testLargeUpload");
+        getMethod.getParams().setIntParameter("http.socket.timeout", 30000);
+        getMethod.setHeader(authToken);
+        getMethod.setHeader(authToken);
+        resp = wrapClient1.execute(getMethod);
+        Header[] headers = resp.getAllHeaders();
+        for(int i=0;i<headers.length;i++){
+            System.out.println(headers[i].getName() + " : "+headers[i].getValue());
+        }
+        
+        EntityUtils.consume(resp.getEntity());
+        
+        wrapClient1.getConnectionManager().closeExpiredConnections();
+    }
+
+    private static org.apache.http.client.HttpClient wrapClient(org.apache.http.client.HttpClient base) {
+        try {
+            SSLSocketFactory ssf = getSSLSocketFactory();
+            ClientConnectionManager ccm = base.getConnectionManager();
+            SchemeRegistry sr = ccm.getSchemeRegistry();
+            sr.register(new Scheme("https", ssf, 443));
+            return new DefaultHttpClient(ccm, base.getParams());
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
+        SSLContext ctx = getSSLContext();
+
+        SSLSocketFactory ssf = new SSLSocketFactory(ctx);
+        ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+        return ssf;
+    }
+
+    private static SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        X509TrustManager tm = new X509TrustManager() {
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+        };
+        ctx.init(null, new TrustManager[]{tm}, null);
+        return ctx;
     }
 }
