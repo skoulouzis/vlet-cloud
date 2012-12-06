@@ -2,7 +2,9 @@ package nl.uva.vlet.vfs.cloud;
 
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.sun.management.OperatingSystemMXBean;
 import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.util.concurrent.ExecutionException;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.domain.Blob;
@@ -20,6 +22,7 @@ public class CloudOutputStream extends OutputStream {
     private final AsyncBlobStore asyncBlobStore;
     private int bytesWriten = 0;
     private final ListenableFuture<Blob> res;
+    private final int limit;
 
     CloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore) throws IOException {
         this.container = container;
@@ -30,12 +33,17 @@ public class CloudOutputStream extends OutputStream {
 
         //Get blob asynchronously
         res = asyncBlobStore.getBlob(container, blobName);
+        
+         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+//        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / (1024.0 * 1024.0) + " MB");
+
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 30);  //Co
     }
 
     @Override
     public void write(final int b) throws IOException {
         bytesWriten++;
-        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < limit) {
             out.write(b);
         } else {
             dumpTheArrayAndSwitchToFile();
@@ -74,7 +82,7 @@ public class CloudOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len)
             throws IOException {
         bytesWriten += len;
-        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < limit) {
             out.write(b, off, len);
         } else {
             dumpTheArrayAndSwitchToFile();
@@ -85,7 +93,7 @@ public class CloudOutputStream extends OutputStream {
     @Override
     public void write(final byte[] b) throws IOException {
         bytesWriten += b.length;
-        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < limit) {
             out.write(b);
         } else {
             dumpTheArrayAndSwitchToFile();
@@ -112,7 +120,7 @@ public class CloudOutputStream extends OutputStream {
     }
 
     private void dumpTheArrayAndSwitchToFile() throws FileNotFoundException, IOException {
-        if (bytesWriten < Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES) {
+        if (bytesWriten < limit) {
             bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
             bufferFile.deleteOnExit();

@@ -47,6 +47,7 @@ import java.net.URI;
 import java.security.SecureRandom;
 import java.util.*;
 import javax.net.ssl.*;
+import nl.uva.vlet.vfs.cloud.Constants;
 import org.apache.http.StatusLine;
 import org.apache.http.entity.ByteArrayEntity;
 import org.jclouds.domain.Credentials;
@@ -514,12 +515,12 @@ public class TestBlobStore {
         String key = props.getProperty("jclouds.credential");
 
         HttpGet getMethod = new HttpGet(endpoint);
-        getMethod.getParams().setIntParameter("http.socket.timeout", 10000);
+        getMethod.getParams().setIntParameter("http.socket.timeout",  Constants.TIME_OUT);
         getMethod.setHeader("x-auth-user", uname);
         getMethod.setHeader("x-auth-key", key);
         BasicHttpParams params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 10000);
-        params.setParameter("http.socket.timeout", 10000);
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params,  Constants.TIME_OUT);
+        params.setParameter("http.socket.timeout",  Constants.TIME_OUT);
 
         org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
         org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
