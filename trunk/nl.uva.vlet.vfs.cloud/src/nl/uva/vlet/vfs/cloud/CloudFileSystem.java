@@ -2,10 +2,9 @@ package nl.uva.vlet.vfs.cloud;
 
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import com.sun.management.OperatingSystemMXBean;
+import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -72,7 +71,6 @@ public class CloudFileSystem extends FileSystemNode {
 
         VRL serverVRL = info.getServerVRL();
         if (!serverVRL.getScheme().equals(Constants.FILESYSTEM_SCHME)) {
-
             String endpoint = serverVRL.copyWithNewScheme("https").toString();
             debug("Endpoint: " + endpoint);
 
@@ -533,7 +531,10 @@ public class CloudFileSystem extends FileSystemNode {
             Blob blob = res.get();
 
             Payload payload = blob.getPayload();
-            return payload.getInput();
+            OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            int size = (int) (osMBean.getFreePhysicalMemorySize() / 30);
+            
+            return new BufferedInputStream(payload.getInput(),size);
 
         } finally {
             //blobContext.close();
@@ -597,9 +598,9 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private void debug(String msg) {
-        System.err.println(this.getClass().getName() + ": " + msg);
+//        System.err.println(this.getClass().getName() + ": " + msg);
 //        System.out.println(this.getClass().getName() + ": " + msg);
-        logger.debugPrintf(msg + "\n");
+//        logger.debugPrintf(msg + "\n");
 //        Global.debugPrintf(this, msg + "\n");
     }
 

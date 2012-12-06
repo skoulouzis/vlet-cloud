@@ -39,6 +39,7 @@ import nl.uva.vlet.vfs.VFile;
 import nl.uva.vlet.vfs.VFileSystem;
 import nl.uva.vlet.vfs.cloud.CloudFSFactory;
 import nl.uva.vlet.vfs.cloud.CloudFileSystem;
+import nl.uva.vlet.vfs.cloud.Constants;
 import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
@@ -838,13 +839,13 @@ public class TestCloudFS {
 
     private static void testGetInputStream() throws IOException {
         BasicHttpParams params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, 30000);
-        params.setParameter("http.socket.timeout", 30000);
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params,  Constants.TIME_OUT);
+        params.setParameter("http.socket.timeout",  Constants.TIME_OUT);
 
 
 
         HttpGet getMethod = new HttpGet("https://149.156.10.131:8443/auth/v1.0/");
-        getMethod.getParams().setIntParameter("http.socket.timeout", 30000);
+        getMethod.getParams().setIntParameter("http.socket.timeout",  Constants.TIME_OUT);
         getMethod.setHeader("x-auth-user", uname);
         getMethod.setHeader("x-auth-key", key);
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
@@ -861,7 +862,7 @@ public class TestCloudFS {
 
         
         getMethod = new HttpGet(storageURLHeader.getValue()+"/a4958c90-e0bb-4b0e-be3b-517c6e2c1629-testLargeUpload");
-        getMethod.getParams().setIntParameter("http.socket.timeout", 30000);
+        getMethod.getParams().setIntParameter("http.socket.timeout",  Constants.TIME_OUT);
         getMethod.setHeader(authToken);
         getMethod.setHeader(authToken);
         resp = wrapClient1.execute(getMethod);
