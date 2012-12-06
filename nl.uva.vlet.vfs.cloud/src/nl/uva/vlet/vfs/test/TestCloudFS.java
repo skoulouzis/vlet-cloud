@@ -717,7 +717,7 @@ public class TestCloudFS {
         {
             try {
                 localFile = localTempDir.createFile("test10MBmove");
-                int len = 500;
+                int len = 50;
 
                 byte buffer[] = new byte[len];
                 for (int i = 0; i < buffer.length; i++) {
@@ -781,9 +781,9 @@ public class TestCloudFS {
                     throw new Exception("Expected: " + localFile.getLength() + " got: " + newLocalFile.getLength());
                 }
 
-                ins = newLocalFile.getInputStream();
-                int rRen = 0;
-                int readDowncount = 0;
+//                ins = newLocalFile.getInputStream();
+//                int rRen = 0;
+//                int readDowncount = 0;
 //                while ((rRen = ins.read(buffer)) != -1) {
 //                    for (int i = 0; i < rRen; i++) {
 //                        if (buffer[i] == 1) {
