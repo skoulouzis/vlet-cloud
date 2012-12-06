@@ -77,11 +77,9 @@ class SwiftCloudOutputStream extends OutputStream {
 
         limit = (int) (osMBean.getFreePhysicalMemorySize() / 50);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
         int cpus = Runtime.getRuntime().availableProcessors();
-        maxThreads = cpus * 4;
+        maxThreads = cpus * 1;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         System.out.println("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
-        
-         setManifestFile();
     }
 
     @Override
@@ -122,6 +120,8 @@ class SwiftCloudOutputStream extends OutputStream {
             if (out.size() > 0 || out.toByteArray().length > 0) {
                 uploadChunk();
             }
+            setManifestFile();
+
             out.close();
 
             int count = executorService.getActiveCount();
@@ -136,6 +136,8 @@ class SwiftCloudOutputStream extends OutputStream {
             }
             this.cm.closeExpiredConnections();
             counter = 0;
+        } catch (ExecutionException ex) {
+            throw new IOException(ex);
         } catch (InterruptedException ex) {
             throw new IOException(ex);
         }
