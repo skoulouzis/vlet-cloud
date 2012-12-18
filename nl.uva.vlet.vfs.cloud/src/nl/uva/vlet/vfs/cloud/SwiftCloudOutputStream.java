@@ -62,7 +62,7 @@ class SwiftCloudOutputStream extends OutputStream {
     private static int limit;
     private int maxThreads;
     private PoolingClientConnectionManager cm;
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
         

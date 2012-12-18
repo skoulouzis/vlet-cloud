@@ -533,7 +533,7 @@ public class CloudFileSystem extends FileSystemNode {
 
             Payload payload = blob.getPayload();
             OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            int size = (int) (osMBean.getFreePhysicalMemorySize() / 30);
+            int size = (int) (osMBean.getFreePhysicalMemorySize() / 10);
             debug("Alocated  physical memory:\t" + size / (1024.0 * 1024.0));
             return new BufferedInputStream(payload.getInput(), size);
 
