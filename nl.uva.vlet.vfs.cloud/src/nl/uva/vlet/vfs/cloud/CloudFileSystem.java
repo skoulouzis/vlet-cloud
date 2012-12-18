@@ -58,6 +58,7 @@ public class CloudFileSystem extends FileSystemNode {
     }
     private AsyncBlobStore asyncBlobStore;
 //    private boolean useCache = true;
+    private boolean debug=false;
 
     public CloudFileSystem(VRSContext context, ServerInfo info)
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException {
@@ -533,8 +534,8 @@ public class CloudFileSystem extends FileSystemNode {
             Payload payload = blob.getPayload();
             OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
             int size = (int) (osMBean.getFreePhysicalMemorySize() / 30);
-            
-            return new BufferedInputStream(payload.getInput(),size);
+            debug("Alocated  physical memory:\t" + size / (1024.0 * 1024.0));
+            return new BufferedInputStream(payload.getInput(), size);
 
         } finally {
             //blobContext.close();
@@ -598,7 +599,9 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private void debug(String msg) {
-//        System.err.println(this.getClass().getName() + ": " + msg);
+        if (debug) {
+            System.err.println(this.getClass().getName() + ": " + msg);
+        }
 //        System.out.println(this.getClass().getName() + ": " + msg);
 //        logger.debugPrintf(msg + "\n");
 //        Global.debugPrintf(this, msg + "\n");

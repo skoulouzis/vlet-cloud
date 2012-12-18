@@ -62,7 +62,7 @@ class SwiftCloudOutputStream extends OutputStream {
     private static int limit;
     private int maxThreads;
     private PoolingClientConnectionManager cm;
-    private static final boolean debug = false;
+    private static final boolean debug = true;
     
     public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
         
@@ -73,11 +73,10 @@ class SwiftCloudOutputStream extends OutputStream {
         this.key = key;
         
         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-//        debug("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / (1024.0 * 1024.0) + " MB");
 
-        limit = (int) (osMBean.getFreePhysicalMemorySize() / 50);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
+        limit = (int) (osMBean.getFreePhysicalMemorySize() / 30);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;
         int cpus = Runtime.getRuntime().availableProcessors();
-        maxThreads = cpus * 1;
+        maxThreads = cpus * 2;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
         debug("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
     }
@@ -125,7 +124,7 @@ class SwiftCloudOutputStream extends OutputStream {
             out.close();
             
             int count = executorService.getActiveCount();
-//            System.err.println("Before Still running: " + count);
+            debug("Still running: " + count);
             executorService.shutdown();
             long sleepTime = 50;
             while (!executorService.awaitTermination(2, TimeUnit.HOURS)) {
@@ -136,6 +135,7 @@ class SwiftCloudOutputStream extends OutputStream {
             }
             this.cm.closeExpiredConnections();
             counter = 0;
+            System.gc();
         } catch (ExecutionException ex) {
             throw new IOException(ex);
         } catch (InterruptedException ex) {
