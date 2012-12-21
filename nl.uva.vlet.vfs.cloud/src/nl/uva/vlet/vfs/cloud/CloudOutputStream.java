@@ -22,7 +22,7 @@ public class CloudOutputStream extends OutputStream {
     private final AsyncBlobStore asyncBlobStore;
     private int bytesWriten = 0;
     private final ListenableFuture<Blob> res;
-    private final int limit;
+    private static int limit = -1;
 
     CloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore) throws IOException {
         this.container = container;
@@ -33,11 +33,10 @@ public class CloudOutputStream extends OutputStream {
 
         //Get blob asynchronously
         res = asyncBlobStore.getBlob(container, blobName);
-        
-         OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-//        System.out.println("Free physical memory:\t" + osMBean.getFreePhysicalMemorySize() / (1024.0 * 1024.0) + " MB");
-
-        limit = (int) (osMBean.getFreePhysicalMemorySize() / 30);  //Co
+        if (limit <= -1) {
+            OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            limit = (int) (osMBean.getFreePhysicalMemorySize() / 2);  //Co
+        }
     }
 
     @Override

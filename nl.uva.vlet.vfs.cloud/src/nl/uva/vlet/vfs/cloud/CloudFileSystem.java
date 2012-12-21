@@ -58,7 +58,8 @@ public class CloudFileSystem extends FileSystemNode {
     }
     private AsyncBlobStore asyncBlobStore;
 //    private boolean useCache = true;
-    private boolean debug=false;
+    private boolean debug = true;
+    private static int bufferSize = -1;
 
     public CloudFileSystem(VRSContext context, ServerInfo info)
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException {
@@ -96,6 +97,13 @@ public class CloudFileSystem extends FileSystemNode {
             if (StringUtil.isEmpty(username)) {
                 throw new NullPointerException("Username is null!");
             }
+            
+            if (bufferSize <= -1) {
+                OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                bufferSize = (int) (osMBean.getFreePhysicalMemorySize() / 10);
+                debug("Alocated  physical memory:\t" + bufferSize / (1024.0 * 1024.0));
+            }
+
         }
 
 //        debug("Username: " + username);
@@ -532,10 +540,7 @@ public class CloudFileSystem extends FileSystemNode {
             Blob blob = res.get();
 
             Payload payload = blob.getPayload();
-            OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            int size = (int) (osMBean.getFreePhysicalMemorySize() / 10);
-            debug("Alocated  physical memory:\t" + size / (1024.0 * 1024.0));
-            return new BufferedInputStream(payload.getInput(), size);
+            return new BufferedInputStream(payload.getInput(), bufferSize);
 
         } finally {
             //blobContext.close();
@@ -549,7 +554,6 @@ public class CloudFileSystem extends FileSystemNode {
 //                provider, props);
 
         if (vrl.getScheme().equals("swift")) {
-
             return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
         } else {
             return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
