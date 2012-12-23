@@ -59,7 +59,7 @@ class SwiftCloudOutputStream extends OutputStream {
     private String putURL;
     private int counter = 1;
     private ThreadPoolExecutor executorService;
-    private final int limit;
+//    private final int limit;
     private int maxThreads;
     private PoolingClientConnectionManager cm;
     private static final boolean debug = true;
@@ -76,20 +76,20 @@ class SwiftCloudOutputStream extends OutputStream {
 
 //        if (limit <= -1) {
             osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            limit = (int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+//            limit = (int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
 //        }
 
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
-        debug("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
+//        debug("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
     }
 
     @Override
     public void write(final int b) throws IOException {
         out.write(b);
         bytesWriten++;
-        if (bytesWriten >= limit || osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
+        if ( osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
             uploadChunk();
         }
     }
@@ -98,7 +98,7 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len) throws IOException {
         out.write(b, off, len);
         bytesWriten += len;
-        if (bytesWriten >= limit || osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
+        if ( osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
             uploadChunk();
         }
     }
@@ -107,7 +107,7 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final byte[] b) throws IOException {
         out.write(b);
         bytesWriten += b.length;
-        if (bytesWriten >= limit || osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
+        if (osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
             uploadChunk();
         }
     }
