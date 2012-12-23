@@ -59,10 +59,11 @@ class SwiftCloudOutputStream extends OutputStream {
     private String putURL;
     private int counter = 1;
     private ThreadPoolExecutor executorService;
-    private static int limit = -1;
+    private final int limit;
     private int maxThreads;
     private PoolingClientConnectionManager cm;
     private static final boolean debug = true;
+    private final OperatingSystemMXBean osMBean;
 
     public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
 
@@ -73,10 +74,10 @@ class SwiftCloudOutputStream extends OutputStream {
         this.key = key;
 
 
-        if (limit <= -1) {
-            OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            limit = (int) (osMBean.getFreePhysicalMemorySize() / 2);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
-        }
+//        if (limit <= -1) {
+            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            limit = (int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+//        }
 
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
@@ -88,7 +89,7 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final int b) throws IOException {
         out.write(b);
         bytesWriten++;
-        if (bytesWriten >= limit) {
+        if (bytesWriten >= limit || osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
             uploadChunk();
         }
     }
@@ -97,7 +98,7 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len) throws IOException {
         out.write(b, off, len);
         bytesWriten += len;
-        if (bytesWriten >= limit) {
+        if (bytesWriten >= limit || osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
             uploadChunk();
         }
     }
@@ -106,7 +107,7 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final byte[] b) throws IOException {
         out.write(b);
         bytesWriten += b.length;
-        if (bytesWriten >= limit) {
+        if (bytesWriten >= limit || osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
             uploadChunk();
         }
     }
@@ -161,6 +162,7 @@ class SwiftCloudOutputStream extends OutputStream {
             bytesWriten = 0;
             counter++;
             out.reset();
+            System.gc();
         }
     }
 
