@@ -5,10 +5,7 @@
 package nl.uva.vlet.vfs.cloud;
 
 import com.sun.management.OperatingSystemMXBean;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.security.KeyManagementException;
@@ -34,6 +31,7 @@ import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
@@ -50,7 +48,7 @@ class SwiftCloudOutputStream extends OutputStream {
     private int bytesWriten = 0;
     private final String container;
     private final String blobName;
-    private final ByteArrayOutputStream out;
+    private ByteArrayOutputStream out;
     private Header authToken;
     private final String key;
     private BasicHttpParams params;
@@ -59,11 +57,12 @@ class SwiftCloudOutputStream extends OutputStream {
     private String putURL;
     private int counter = 1;
     private ThreadPoolExecutor executorService;
-//    private final int limit;
+    private static int limit;
     private int maxThreads;
     private PoolingClientConnectionManager cm;
     private static final boolean debug = true;
-    private final OperatingSystemMXBean osMBean;
+//    private final OperatingSystemMXBean osMBean;
+//    private File bufferFile=null;
 
     public SwiftCloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException, InterruptedException, ExecutionException {
 
@@ -71,14 +70,14 @@ class SwiftCloudOutputStream extends OutputStream {
         this.blobName = blobName;
         this.asyncBlobStore = asyncBlobStore;
         out = new ByteArrayOutputStream();
+//        initBufferFile();
         this.key = key;
 
 
 //        if (limit <= -1) {
-            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-//            limit = (int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+//            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        limit = 20 * 1024 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
 //        }
-
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
@@ -89,7 +88,8 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final int b) throws IOException {
         out.write(b);
         bytesWriten++;
-        if ( osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
+//        long free = osMBean.getFreePhysicalMemorySize();
+        if (bytesWriten >= limit) {
             uploadChunk();
         }
     }
@@ -98,7 +98,8 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len) throws IOException {
         out.write(b, off, len);
         bytesWriten += len;
-        if ( osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
+//        long free = osMBean.getFreePhysicalMemorySize();
+        if (bytesWriten >= limit) {
             uploadChunk();
         }
     }
@@ -107,7 +108,8 @@ class SwiftCloudOutputStream extends OutputStream {
     public void write(final byte[] b) throws IOException {
         out.write(b);
         bytesWriten += b.length;
-        if (osMBean.getFreePhysicalMemorySize() <= (100*1024*1024)) {
+
+        if (bytesWriten >= limit) {
             uploadChunk();
         }
     }
@@ -121,6 +123,7 @@ class SwiftCloudOutputStream extends OutputStream {
     public void close() throws IOException {
         try {
             if (out.size() > 0 || out.toByteArray().length > 0) {
+//            if(bufferFile.exists()){
                 uploadChunk();
             }
             setManifestFile();
@@ -154,6 +157,9 @@ class SwiftCloudOutputStream extends OutputStream {
             HttpPut put = new HttpPut(putURL + "/_part" + counter);
             put.setHeader(authToken);
             put.setEntity(new ByteArrayEntity(out.toByteArray()));
+            out.flush();
+            out.close();
+//            put.setEntity(new FileEntity(bufferFile));
 
             PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
             putTask.setPut(put);
@@ -161,8 +167,9 @@ class SwiftCloudOutputStream extends OutputStream {
         } finally {
             bytesWriten = 0;
             counter++;
-            out.reset();
-            System.gc();
+//            bufferFile.delete();
+//            initBufferFile();
+//            System.gc();
         }
     }
 
@@ -268,6 +275,12 @@ class SwiftCloudOutputStream extends OutputStream {
             System.err.println(this.getClass().getName() + ": " + msg);
         }
     }
+
+//    private void initBufferFile() throws IOException {
+//        bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
+//        out = new FileOutputStream(bufferFile);
+//        bufferFile.deleteOnExit();
+//    }
 
     private static class PutRunnable implements Runnable {
 

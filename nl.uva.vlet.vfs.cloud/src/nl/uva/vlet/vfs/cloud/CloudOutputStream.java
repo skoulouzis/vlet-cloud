@@ -35,7 +35,7 @@ public class CloudOutputStream extends OutputStream {
         res = asyncBlobStore.getBlob(container, blobName);
         if (limit <= -1) {
             OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            limit = (int) (osMBean.getFreePhysicalMemorySize() / 2);  //Co
+            limit = (int) (osMBean.getFreePhysicalMemorySize() / 10);  //Co
         }
     }
 
