@@ -76,7 +76,7 @@ class SwiftCloudOutputStream extends OutputStream {
 
 //        if (limit <= -1) {
 //            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        limit = 20 * 1024 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+        limit = 1 * 1024 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
 //        }
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
