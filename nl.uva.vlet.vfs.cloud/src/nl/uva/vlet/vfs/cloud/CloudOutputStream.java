@@ -29,8 +29,11 @@ public class CloudOutputStream extends OutputStream {
         this.blobName = blobName;
 
         this.asyncBlobStore = asyncBlobStore;
-        out = new ByteArrayOutputStream();
+//        out = new ByteArrayOutputStream();
 
+        bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
+        bufferFile.deleteOnExit();
+        out = new FileOutputStream(bufferFile);
         //Get blob asynchronously
         res = asyncBlobStore.getBlob(container, blobName);
         if (limit <= -1) {
@@ -42,12 +45,12 @@ public class CloudOutputStream extends OutputStream {
     @Override
     public void write(final int b) throws IOException {
         bytesWriten++;
-        if (bytesWriten < limit) {
+//        if (bytesWriten < limit) {
             out.write(b);
-        } else {
-            dumpTheArrayAndSwitchToFile();
-            out.write(b);
-        }
+//        } else {
+//            dumpTheArrayAndSwitchToFile();
+//            out.write(b);
+//        }
     }
 
     private void writeData() throws InterruptedException, ExecutionException {
@@ -81,23 +84,23 @@ public class CloudOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len)
             throws IOException {
         bytesWriten += len;
-        if (bytesWriten < limit) {
+//        if (bytesWriten < limit) {
             out.write(b, off, len);
-        } else {
-            dumpTheArrayAndSwitchToFile();
-            out.write(b, off, len);
-        }
+//        } else {
+//            dumpTheArrayAndSwitchToFile();
+//            out.write(b, off, len);
+//        }
     }
 
     @Override
     public void write(final byte[] b) throws IOException {
         bytesWriten += b.length;
-        if (bytesWriten < limit) {
+//        if (bytesWriten < limit) {
             out.write(b);
-        } else {
-            dumpTheArrayAndSwitchToFile();
-            out.write(b);
-        }
+//        } else {
+//            dumpTheArrayAndSwitchToFile();
+//            out.write(b);
+//        }
     }
 
     @Override
@@ -117,18 +120,17 @@ public class CloudOutputStream extends OutputStream {
         }
 //        blobContext.close();
     }
-
-    private void dumpTheArrayAndSwitchToFile() throws FileNotFoundException, IOException {
-        if (bytesWriten < limit) {
-            bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
-            FileOutputStream fos = new FileOutputStream(bufferFile);
-            bufferFile.deleteOnExit();
-
-            fos.write(((ByteArrayOutputStream) out).toByteArray());
-            out.flush();
-            out.close();
-
-            out = fos;
-        }
-    }
+//    private void dumpTheArrayAndSwitchToFile() throws FileNotFoundException, IOException {
+//        if (bytesWriten < limit) {
+//            bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
+//            FileOutputStream fos = new FileOutputStream(bufferFile);
+//            bufferFile.deleteOnExit();
+//
+//            fos.write(((ByteArrayOutputStream) out).toByteArray());
+//            out.flush();
+//            out.close();
+//
+//            out = fos;
+//        }
+//    }
 }
