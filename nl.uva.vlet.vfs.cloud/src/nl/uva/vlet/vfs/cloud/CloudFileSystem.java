@@ -15,10 +15,7 @@ import java.util.logging.Logger;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.*;
-import nl.uva.vlet.vfs.FileSystemNode;
-import nl.uva.vlet.vfs.VDir;
-import nl.uva.vlet.vfs.VFSNode;
-import nl.uva.vlet.vfs.VFile;
+import nl.uva.vlet.vfs.*;
 import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
@@ -29,6 +26,7 @@ import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
+import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.filesystem.reference.FilesystemConstants;
 import org.jclouds.io.Payload;
 
@@ -97,7 +95,7 @@ public class CloudFileSystem extends FileSystemNode {
             if (StringUtil.isEmpty(username)) {
                 throw new NullPointerException("Username is null!");
             }
-            
+
 //            if (bufferSize <= -1) {
 //                OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 //                bufferSize = (int) (osMBean.getFreePhysicalMemorySize() / 10);
@@ -714,5 +712,24 @@ public class CloudFileSystem extends FileSystemNode {
 //        } else {
 //            return null;
 //        }
+    }
+
+    void uploadFile(VFSTransfer transferInfo, VFile localSource, VRL vrl) throws VRLSyntaxException, InterruptedException, CloudRequestTimeout, ExecutionException, VlException {
+        transferInfo.startSubTask("UploadToSwift", localSource.getLength());
+        String[] containerAndPath = getContainerAndPath(vrl);
+        ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
+        block(res);
+        Blob blob = res.get();
+        if (blob == null) {
+            blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
+        }
+        File file = new File(localSource.getVRL().toURI());
+        blob.setPayload(file);
+        if (file.length() > (50 * 1024 * 1024)) {
+            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+        } else {
+            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+        }
+        transferInfo.endTask("UploadToSwift");
     }
 }

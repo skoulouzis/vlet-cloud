@@ -23,6 +23,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
@@ -72,11 +73,9 @@ class SwiftCloudOutputStream extends OutputStream {
         out = new ByteArrayOutputStream();
 //        initBufferFile();
         this.key = key;
-
-
 //        if (limit <= -1) {
 //            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        limit = 5 * 1024 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+        limit = 500 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
 //        }
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
@@ -160,10 +159,11 @@ class SwiftCloudOutputStream extends OutputStream {
             out.flush();
             out.close();
 //            put.setEntity(new FileEntity(bufferFile));
-
+            debug("new task");
             PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
             putTask.setPut(put);
             executorService.submit(putTask);
+            debug("executorService running: "+executorService.getActiveCount());
         } finally {
             bytesWriten = 0;
             counter++;
@@ -312,7 +312,12 @@ class SwiftCloudOutputStream extends OutputStream {
                     throw new IOException(resp.toString());
                 }
             } catch (IOException ex) {
-                Logger.getLogger(SwiftCloudOutputStream.class.getName()).log(Level.SEVERE, null, ex);
+                try {
+                    client.execute(put);
+                    Logger.getLogger(SwiftCloudOutputStream.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex1) {
+                    Logger.getLogger(SwiftCloudOutputStream.class.getName()).log(Level.SEVERE, null, ex1);
+                } 
             } finally {
                 if (resp != null) {
                     try {
