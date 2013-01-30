@@ -12,8 +12,10 @@ import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VChecksum;
+import nl.uva.vlet.vfs.VFSTransfer;
 import nl.uva.vlet.vfs.VFile;
 import nl.uva.vlet.vfs.VFileSystem;
+import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
 import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageMetadata;
@@ -84,7 +86,7 @@ public class CloudFile extends VFile implements VChecksum {
         BlobMetadata meta;
         try {
             meta = (BlobMetadata) cvfs.queryPath(getVRL());
-            
+
             return meta.getContentMetadata().getContentLength();
         } catch (InterruptedException e) {
             throw new VlException(e);
@@ -189,5 +191,18 @@ public class CloudFile extends VFile implements VChecksum {
     @Override
     public void setContents(String contents) throws VlException {
         this.cvfs.setContentsToFile(contents, getVRL());
+    }
+
+    @Override
+    protected void uploadFrom(VFSTransfer transferInfo, VFile localSource) throws VlException, VRLSyntaxException {
+        try {
+            this.cvfs.uploadFile(transferInfo, localSource, getVRL());
+        } catch (InterruptedException ex) {
+            throw new nl.uva.vlet.exception.VlInterruptedException(ex);
+        } catch (CloudRequestTimeout ex) {
+            throw new nl.uva.vlet.exception.VlException(ex);
+        } catch (ExecutionException ex) {
+            throw new VlException(ex);
+        }
     }
 }
