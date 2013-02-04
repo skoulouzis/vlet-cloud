@@ -2,6 +2,8 @@ package nl.uva.vlet.vfs.cloud;
 
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.exception.VlException;
 import nl.uva.vlet.vfs.VDir;
@@ -88,7 +90,10 @@ public class CloudDir extends VDir {// implements VUnixFileMode {
         try {
             return cvfs.exists(vrl, StorageType.FOLDER);
         } catch (Exception e) {
-            if (e instanceof org.jclouds.blobstore.ContainerNotFoundException || e.getMessage().contains(org.jclouds.blobstore.ContainerNotFoundException.class.getName())) {
+            Logger.getLogger(CloudDir.class.getName()).log(Level.SEVERE, null, e);
+            if (e instanceof org.jclouds.blobstore.ContainerNotFoundException || 
+                    e.getMessage() != null &&
+                    e.getMessage().contains(org.jclouds.blobstore.ContainerNotFoundException.class.getName())) {
                 return false;
             } else {
                 throw new nl.uva.vlet.exception.VlException(e);
