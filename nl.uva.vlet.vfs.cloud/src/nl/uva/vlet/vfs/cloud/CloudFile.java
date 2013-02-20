@@ -6,8 +6,6 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
@@ -197,6 +195,18 @@ public class CloudFile extends VFile implements VChecksum {
     protected void uploadFrom(VFSTransfer transferInfo, VFile localSource) throws VlException, VRLSyntaxException {
         try {
             this.cvfs.uploadFile(transferInfo, localSource, getVRL());
+        } catch (InterruptedException ex) {
+            throw new nl.uva.vlet.exception.VlInterruptedException(ex);
+        } catch (CloudRequestTimeout ex) {
+            throw new nl.uva.vlet.exception.VlException(ex);
+        } catch (ExecutionException ex) {
+            throw new VlException(ex);
+        }
+    }
+    
+    public void uploadFrom(VFile localSource) throws VlException, VRLSyntaxException {
+        try {
+            this.cvfs.uploadFile(null, localSource, getVRL());
         } catch (InterruptedException ex) {
             throw new nl.uva.vlet.exception.VlInterruptedException(ex);
         } catch (CloudRequestTimeout ex) {

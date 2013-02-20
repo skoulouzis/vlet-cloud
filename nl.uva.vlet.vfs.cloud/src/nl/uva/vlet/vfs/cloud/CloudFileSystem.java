@@ -60,7 +60,7 @@ public class CloudFileSystem extends FileSystemNode {
 //    private static int bufferSize = -1;
 
     public CloudFileSystem(VRSContext context, ServerInfo info)
-            throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException {
+            throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException, VlException {
         super(context, info);
         provider = info.getScheme();// "swift";// "in-memory"
         props = new Properties();
@@ -139,8 +139,7 @@ public class CloudFileSystem extends FileSystemNode {
             props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
         }
 
-        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
-        this.asyncBlobStore = blobStoreContext.getAsyncBlobStore();
+        connect();
     }
 
     @Override
@@ -298,6 +297,8 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public void connect() throws VlException {
+        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
+        this.asyncBlobStore = blobStoreContext.getAsyncBlobStore();
     }
 
     @Override
@@ -377,7 +378,7 @@ public class CloudFileSystem extends FileSystemNode {
 
     }
 
-    protected boolean exists(VRL vrl, StorageType type) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceException, CloudRequestTimeout {
+    protected boolean exists(VRL vrl, StorageType type) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceException, CloudRequestTimeout, VlException {
         boolean exists = false;
         BlobMetadata meta = null;
         if (vrl.isRootPath()) {
@@ -387,7 +388,10 @@ public class CloudFileSystem extends FileSystemNode {
 
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
-
+                if (asyncBlobStore == null) {
+                    debug("asyncBlobStore == null");
+                    this.connect();
+                }
                 ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
                 block(resContainerExists);
                 // This waits for request to complete
@@ -553,7 +557,7 @@ public class CloudFileSystem extends FileSystemNode {
 //        if (vrl.getScheme().equals("swift")) {
 //            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
 //        } else {
-            return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
+        return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
 //        }
 
     }
@@ -715,7 +719,9 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     void uploadFile(VFSTransfer transferInfo, VFile localSource, VRL vrl) throws VRLSyntaxException, InterruptedException, CloudRequestTimeout, ExecutionException, VlException {
-        transferInfo.startSubTask("UploadToSwift", localSource.getLength());
+        if (transferInfo != null) {
+            transferInfo.startSubTask("UploadToSwift", localSource.getLength());
+        }
         String[] containerAndPath = getContainerAndPath(vrl);
         ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
         block(res);
@@ -730,6 +736,8 @@ public class CloudFileSystem extends FileSystemNode {
         } else {
             asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
         }
-        transferInfo.endTask("UploadToSwift");
+        if (transferInfo != null) {
+            transferInfo.endTask("UploadToSwift");
+        }
     }
 }
