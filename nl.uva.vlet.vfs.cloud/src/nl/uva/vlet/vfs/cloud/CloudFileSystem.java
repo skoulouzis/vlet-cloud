@@ -44,6 +44,7 @@ public class CloudFileSystem extends FileSystemNode {
     private String prefixPath = "/auth/v1.0";
     static ClassLogger logger;
     private HashMap<VRL, CloudMetadataWrapper> cache = new HashMap<VRL, CloudMetadataWrapper>();
+    private final boolean doChunkUpload;
 
     {
         try {
@@ -63,6 +64,7 @@ public class CloudFileSystem extends FileSystemNode {
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException, VlException {
         super(context, info);
         provider = info.getScheme();// "swift";// "in-memory"
+        doChunkUpload = info.getBoolProperty("chunk.upload", false);
         props = new Properties();
 
         if (StringUtil.isEmpty(provider)) {
@@ -554,7 +556,8 @@ public class CloudFileSystem extends FileSystemNode {
         String[] containerAndPath = getContainerAndPath(vrl);
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
-        if (vrl.getScheme().equals("swift")) {
+//        if (vrl.getScheme().equals("swift")) {
+        if (doChunkUpload) {
             return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
         } else {
             return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
