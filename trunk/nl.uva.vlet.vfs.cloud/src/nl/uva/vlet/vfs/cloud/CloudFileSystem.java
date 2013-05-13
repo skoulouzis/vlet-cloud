@@ -554,11 +554,11 @@ public class CloudFileSystem extends FileSystemNode {
         String[] containerAndPath = getContainerAndPath(vrl);
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
-//        if (vrl.getScheme().equals("swift")) {
-//            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
-//        } else {
-        return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
-//        }
+        if (vrl.getScheme().equals("swift")) {
+            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
+        } else {
+            return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
+        }
 
     }
 
