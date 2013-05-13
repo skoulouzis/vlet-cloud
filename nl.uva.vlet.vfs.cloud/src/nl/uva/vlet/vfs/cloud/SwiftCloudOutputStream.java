@@ -4,9 +4,7 @@
  */
 package nl.uva.vlet.vfs.cloud;
 
-import com.sun.management.OperatingSystemMXBean;
 import java.io.*;
-import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -23,7 +21,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
@@ -32,7 +29,6 @@ import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
@@ -75,7 +71,7 @@ class SwiftCloudOutputStream extends OutputStream {
         this.key = key;
 //        if (limit <= -1) {
 //            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        limit = 500 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+        limit = 1024 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
 //        }
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
@@ -139,7 +135,7 @@ class SwiftCloudOutputStream extends OutputStream {
             }
             this.cm.closeExpiredConnections();
             counter = 0;
-            System.gc();
+//            System.gc();
         } catch (ExecutionException ex) {
             throw new IOException(ex);
         } catch (InterruptedException ex) {
