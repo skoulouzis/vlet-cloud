@@ -1,13 +1,9 @@
 package nl.uva.vlet.vfs.cloud;
 
-import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.sun.management.OperatingSystemMXBean;
 import java.io.*;
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
