@@ -260,7 +260,7 @@ public class CloudFileSystem extends FileSystemNode {
                 }
 
             } else {
-                if(asyncBlobStore == null){
+                if (asyncBlobStore == null) {
                     connect();
                 }
                 ListenableFuture<BlobMetadata> res = asyncBlobStore.blobMetadata(
@@ -408,7 +408,7 @@ public class CloudFileSystem extends FileSystemNode {
                     block(metaRes);
                     meta = metaRes.get();
                 } catch (Exception ex) {
-                    if (ex.getMessage().contains("(Is a directory)")) {
+                    if (ex != null && ex.getMessage() != null && ex.getMessage().contains("(Is a directory)")) {
                         if (type != StorageType.BLOB) {
                             exists = true;
                         } else {
