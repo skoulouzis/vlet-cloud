@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.data.StringUtil;
+import nl.uva.vlet.data.VAttribute;
 import nl.uva.vlet.exception.*;
 import nl.uva.vlet.vfs.*;
 import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
@@ -40,7 +41,7 @@ public class CloudFileSystem extends FileSystemNode {
     private String prefixPath = "/auth/v1.0";
     static ClassLogger logger;
     private HashMap<VRL, CloudMetadataWrapper> cache = new HashMap<VRL, CloudMetadataWrapper>();
-    private final boolean doChunkUpload;
+    private final Boolean doChunkUpload;
 
     {
         try {
@@ -60,7 +61,13 @@ public class CloudFileSystem extends FileSystemNode {
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException, VlException {
         super(context, info);
         provider = info.getScheme();// "swift";// "in-memory"
-        doChunkUpload = info.getBoolProperty("chunk.upload", false);
+//        VAttribute attr = info.getAttribute("chunk.upload");
+//        if (attr != null) {
+//            doChunkUpload = attr.getBooleanValue();
+//        } else {
+//            doChunkUpload = false;
+//        }
+        doChunkUpload = (Boolean) getContext().getProperty("chunk.upload");
         props = new Properties();
 
         if (StringUtil.isEmpty(provider)) {
@@ -136,7 +143,6 @@ public class CloudFileSystem extends FileSystemNode {
             }
             props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
         }
-
         connect();
     }
 
@@ -553,7 +559,7 @@ public class CloudFileSystem extends FileSystemNode {
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
 //        if (vrl.getScheme().equals("swift")) {
-        if (doChunkUpload) {
+        if (doChunkUpload != null && doChunkUpload) {
             return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
         } else {
             return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
