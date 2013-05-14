@@ -71,10 +71,10 @@ class SwiftCloudOutputStream extends OutputStream {
         this.key = key;
 //        if (limit <= -1) {
 //            osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        limit = 1024 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
+        limit = 100 * 1024;//(int) (osMBean.getFreePhysicalMemorySize() / 20);  //Constants.OUTPUT_STREAM_BUFFER_SIZE_IN_BYTES;   
 //        }
         int cpus = Runtime.getRuntime().availableProcessors();
-        maxThreads = cpus * 2;
+        maxThreads = cpus * 1;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
 //        debug("Alocated  physical memory:\t" + limit / (1024.0 * 1024.0) + " MB threads: " + maxThreads);
     }
@@ -155,11 +155,11 @@ class SwiftCloudOutputStream extends OutputStream {
             out.flush();
             out.close();
 //            put.setEntity(new FileEntity(bufferFile));
-            debug("new task");
+//            debug("new task");
             PutRunnable putTask = new PutRunnable(wrapClient(new DefaultHttpClient(cm, params)));
             putTask.setPut(put);
             executorService.submit(putTask);
-            debug("executorService running: "+executorService.getActiveCount());
+//            debug("executorService running: "+executorService.getActiveCount());
         } finally {
             bytesWriten = 0;
             counter++;
