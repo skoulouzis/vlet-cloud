@@ -10,7 +10,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import nl.uva.vlet.ClassLogger;
 import nl.uva.vlet.data.StringUtil;
-import nl.uva.vlet.data.VAttribute;
 import nl.uva.vlet.exception.*;
 import nl.uva.vlet.vfs.*;
 import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
@@ -234,7 +233,7 @@ public class CloudFileSystem extends FileSystemNode {
         return path.substring(prefixPath.length());
     }
 
-    protected StorageMetadata queryPath(VRL path) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceNotFoundException, CloudRequestTimeout {
+    protected StorageMetadata queryPath(VRL path) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceNotFoundException, CloudRequestTimeout, VlException {
         logger.debugPrintf("queryPath():%s\n", path);
         StorageMetadata meta = null;
         try {
@@ -261,6 +260,9 @@ public class CloudFileSystem extends FileSystemNode {
                 }
 
             } else {
+                if(asyncBlobStore == null){
+                    connect();
+                }
                 ListenableFuture<BlobMetadata> res = asyncBlobStore.blobMetadata(
                         container, restOfThePath);
                 block(res);
