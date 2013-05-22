@@ -40,7 +40,7 @@ public class CloudFileSystem extends FileSystemNode {
     private String prefixPath = "/auth/v1.0";
     static ClassLogger logger;
     private HashMap<VRL, CloudMetadataWrapper> cache = new HashMap<VRL, CloudMetadataWrapper>();
-    private final Boolean doChunkUpload;
+    private Boolean doChunkUpload;
 
     {
         try {
@@ -59,90 +59,18 @@ public class CloudFileSystem extends FileSystemNode {
     public CloudFileSystem(VRSContext context, ServerInfo info)
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException, VlException {
         super(context, info);
-        provider = info.getScheme();// "swift";// "in-memory"
-//        VAttribute attr = info.getAttribute("chunk.upload");
-//        if (attr != null) {
-//            doChunkUpload = attr.getBooleanValue();
-//        } else {
-//            doChunkUpload = false;
-//        }
-        doChunkUpload = (Boolean) getContext().getProperty("chunk.upload");
-        props = new Properties();
 
-        if (StringUtil.isEmpty(provider)) {
-            throw new NullPointerException("Provider is null!");
-        }
-
-        VRL serverVRL = info.getServerVRL();
-        if (!serverVRL.getScheme().equals(Constants.FILESYSTEM_SCHME)) {
-            String endpoint = serverVRL.copyWithNewScheme("https").toString();
-            debug("Endpoint: " + endpoint);
-
-            if (StringUtil.isEmpty(endpoint)) {
-                throw new nl.uva.vlet.exception.VlInitializationException(
-                        "Cloud service endpoint is null");
-            }
-
-            props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
-            info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
-        }
-
-        String username = info.getUsername();
-        if (StringUtil.isEmpty(username)) {
-            ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
-            for (ServerInfo i : moreInfo) {
-                username = i.getUsername();
-                if (!StringUtil.isEmpty(username)) {
-                    break;
-                }
-            }
-            if (StringUtil.isEmpty(username)) {
-                throw new NullPointerException("Username is null!");
-            }
-
-//            if (bufferSize <= -1) {
-//                OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-//                bufferSize = (int) (osMBean.getFreePhysicalMemorySize() / 10);
-//                debug("Alocated  physical memory:\t" + bufferSize / (1024.0 * 1024.0));
-//            }
-
-        }
-
-//        debug("Username: " + username);
-        String passwd = info.getPassword();
-//        debug("Password: " + passwd);
-        if (StringUtil.isEmpty(passwd)) {
-            ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
-            for (ServerInfo i : moreInfo) {
-                passwd = i.getPassword();
-                if (!StringUtil.isEmpty(passwd)) {
-                    break;
-                }
-            }
-            if (StringUtil.isEmpty(passwd)) {
-                debug("password is empty!!!");
-                throw new nl.uva.vlet.exception.VlPasswordException(
-                        "Cloud service credential (password) is null");
+        init(info, context, "https");
+        try {
+            connect();
+        } catch (Exception ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")) {
+                init(info, context, "http");
+                connect();
+            } else {
+                throw new nl.uva.vlet.exception.VlInitializationException(ex.getMessage());
             }
         }
-
-        props.setProperty(org.jclouds.Constants.PROPERTY_IDENTITY, username);
-        props.setProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL, passwd);
-        props.setProperty(org.jclouds.Constants.PROPERTY_TRUST_ALL_CERTS,
-                "true");
-
-        props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
-        if (StringUtil.equals(provider, Constants.FILESYSTEM_SCHME)) {
-            String path = System.getProperty("user.home") + "/.local/filesystemstorage";
-            File localStorage = new File(path);
-            if (!localStorage.exists()) {
-                if (!localStorage.mkdirs()) {
-                    throw new VlIOException("Could not create local folder: " + path);
-                }
-            }
-            props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
-        }
-        connect();
     }
 
     @Override
@@ -745,6 +673,92 @@ public class CloudFileSystem extends FileSystemNode {
         }
         if (transferInfo != null) {
             transferInfo.endTask("UploadToSwift");
+        }
+    }
+
+    private void init(ServerInfo info, VRSContext context, String authServiceSchema) throws VlIOException, VlPasswordException, VlInitializationException {
+        provider = info.getScheme();// "swift";// "in-memory"
+//        VAttribute attr = info.getAttribute("chunk.upload");
+//        if (attr != null) {
+//            doChunkUpload = attr.getBooleanValue();
+//        } else {
+//            doChunkUpload = false;
+//        }
+        doChunkUpload = (Boolean) getContext().getProperty("chunk.upload");
+        props = new Properties();
+
+        if (StringUtil.isEmpty(provider)) {
+            throw new NullPointerException("Provider is null!");
+        }
+
+        VRL serverVRL = info.getServerVRL();
+        if (!serverVRL.getScheme().equals(Constants.FILESYSTEM_SCHME)) {
+            String endpoint = serverVRL.copyWithNewScheme(authServiceSchema).toString();
+//            debug("Endpoint: " + endpoint);
+
+            if (StringUtil.isEmpty(endpoint)) {
+                throw new nl.uva.vlet.exception.VlInitializationException(
+                        "Cloud service endpoint is null");
+            }
+
+            props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
+            info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
+        }
+
+        String username = info.getUsername();
+        if (StringUtil.isEmpty(username)) {
+            ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
+            for (ServerInfo i : moreInfo) {
+                username = i.getUsername();
+                if (!StringUtil.isEmpty(username)) {
+                    break;
+                }
+            }
+            if (StringUtil.isEmpty(username)) {
+                throw new NullPointerException("Username is null!");
+            }
+
+//            if (bufferSize <= -1) {
+//                OperatingSystemMXBean osMBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+//                bufferSize = (int) (osMBean.getFreePhysicalMemorySize() / 10);
+//                debug("Alocated  physical memory:\t" + bufferSize / (1024.0 * 1024.0));
+//            }
+
+        }
+
+//        debug("Username: " + username);
+        String passwd = info.getPassword();
+//        debug("Password: " + passwd);
+        if (StringUtil.isEmpty(passwd)) {
+            ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
+            for (ServerInfo i : moreInfo) {
+                passwd = i.getPassword();
+                if (!StringUtil.isEmpty(passwd)) {
+                    break;
+                }
+            }
+            if (StringUtil.isEmpty(passwd)) {
+                debug("password is empty!!!");
+                throw new nl.uva.vlet.exception.VlPasswordException(
+                        "Cloud service credential (password) is null");
+            }
+        }
+
+        props.setProperty(org.jclouds.Constants.PROPERTY_IDENTITY, username);
+        props.setProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL, passwd);
+        props.setProperty(org.jclouds.Constants.PROPERTY_TRUST_ALL_CERTS,
+                "true");
+
+        props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
+        if (StringUtil.equals(provider, Constants.FILESYSTEM_SCHME)) {
+            String path = System.getProperty("user.home") + "/.local/filesystemstorage";
+            File localStorage = new File(path);
+            if (!localStorage.exists()) {
+                if (!localStorage.mkdirs()) {
+                    throw new VlIOException("Could not create local folder: " + path);
+                }
+            }
+            props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
         }
     }
 }
