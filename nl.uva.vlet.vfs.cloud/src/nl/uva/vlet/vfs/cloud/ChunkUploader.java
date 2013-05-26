@@ -5,6 +5,7 @@
 package nl.uva.vlet.vfs.cloud;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -55,7 +56,7 @@ class ChunkUploader {
     private int maxThreads;
     private ThreadPoolExecutor executorService;
     private int counter = 0;
-    private static final long chunkSize = 3 * 1024 * 1024 * 1024;//
+    private static final long chunkSize = Long.valueOf("3221225472");//3GB
     private int chunkFileNum;
 
     ChunkUploader(File file, String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException {
@@ -68,8 +69,8 @@ class ChunkUploader {
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
-
-        chunkFileNum = (int) (file.length() / chunkSize);
+        
+        chunkFileNum = (int) (file.length() / chunkSize) ;
         if (file.length() % chunkFileNum == 0) {
             chunkFileNum++;
         }
