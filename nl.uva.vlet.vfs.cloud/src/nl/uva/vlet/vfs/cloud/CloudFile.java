@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutionException;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
+import nl.uva.vlet.exception.VlIOException;
 import nl.uva.vlet.vfs.VChecksum;
 import nl.uva.vlet.vfs.VFSTransfer;
 import nl.uva.vlet.vfs.VFile;
@@ -201,9 +202,11 @@ public class CloudFile extends VFile implements VChecksum {
             throw new nl.uva.vlet.exception.VlException(ex);
         } catch (ExecutionException ex) {
             throw new VlException(ex);
+        } catch (IOException ex) {
+            throw new VlIOException(ex);
         }
     }
-    
+
     public void uploadFrom(VFile localSource) throws VlException, VRLSyntaxException {
         try {
             this.cvfs.uploadFile(null, localSource, getVRL());
@@ -213,6 +216,8 @@ public class CloudFile extends VFile implements VChecksum {
             throw new nl.uva.vlet.exception.VlException(ex);
         } catch (ExecutionException ex) {
             throw new VlException(ex);
+        } catch (IOException ex) {
+            throw new VlIOException(ex);
         }
     }
 }
