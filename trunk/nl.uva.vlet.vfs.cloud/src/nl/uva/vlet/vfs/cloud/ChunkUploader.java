@@ -86,7 +86,7 @@ class ChunkUploader {
 
             int read;
             fis = new FileInputStream(sourceFile);
-            byte[] copyBuffer = new byte[2 * 1024 * 1024];
+            byte[] copyBuffer = new byte[1024 * 1024];
             File bufferFile = File.createTempFile(this.getClass().getSimpleName() + "part" + counter, null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
             while ((read = fis.read(copyBuffer, 0, copyBuffer.length)) != -1) {
@@ -96,7 +96,6 @@ class ChunkUploader {
                     fos.close();
                     debug("Counter: " + counter);
                     setUpload(bufferFile);
-                    copyBuffer = new byte[100 * 1024];
                     counter++;
                     bufferFile = File.createTempFile(this.getClass().getSimpleName() + "part" + counter, null);
                     fos = new FileOutputStream(bufferFile);
