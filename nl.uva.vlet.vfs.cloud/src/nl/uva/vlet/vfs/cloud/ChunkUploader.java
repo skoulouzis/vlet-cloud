@@ -162,7 +162,7 @@ class ChunkUploader {
         ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
         executorService = new ThreadPoolExecutor(
                 maxThreads, // core thread pool size
-                maxThreads, // maximum thread pool size
+                maxThreads+2, // maximum thread pool size
                 1, // time to wait before resizing pool
                 TimeUnit.HOURS,
                 queue,
