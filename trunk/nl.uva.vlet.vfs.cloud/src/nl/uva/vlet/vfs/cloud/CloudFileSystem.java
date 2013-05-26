@@ -489,7 +489,7 @@ public class CloudFileSystem extends FileSystemNode {
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
 //        if (vrl.getScheme().equals("swift")) {
-        if (doChunkUpload != null && doChunkUpload) {
+        if (vrl.getScheme().equals("swift") && doChunkUpload != null && doChunkUpload) {
             return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
         } else {
             return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
@@ -653,7 +653,7 @@ public class CloudFileSystem extends FileSystemNode {
 //        }
     }
 
-    void uploadFile(VFSTransfer transferInfo, VFile localSource, VRL vrl) throws VRLSyntaxException, InterruptedException, CloudRequestTimeout, ExecutionException, VlException {
+    void uploadFile(VFSTransfer transferInfo, VFile localSource, VRL vrl) throws VRLSyntaxException, InterruptedException, CloudRequestTimeout, ExecutionException, VlException, IOException {
         if (transferInfo != null) {
             transferInfo.startSubTask("UploadToSwift", localSource.getLength());
         }
@@ -665,11 +665,16 @@ public class CloudFileSystem extends FileSystemNode {
             blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
         }
         File file = new File(localSource.getVRL().toURI());
-        blob.setPayload(file);
-        if (file.length() > (50 * 1024 * 1024)) {
-            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+        if (file.length() > (4 * 1024 * 1024  * 1024) && vrl.getScheme().equals("swift")) {
+            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
+            uploader.upload();
         } else {
-            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            blob.setPayload(file);
+            if (file.length() > (50 * 1024 * 1024)) {
+                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+            } else {
+                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            }
         }
         if (transferInfo != null) {
             transferInfo.endTask("UploadToSwift");
