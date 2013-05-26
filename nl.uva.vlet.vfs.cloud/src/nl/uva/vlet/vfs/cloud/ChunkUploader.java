@@ -28,7 +28,6 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
@@ -39,7 +38,7 @@ import org.jclouds.rest.RestContext;
 
 /**
  *
- * @author alogo
+ * @author S. Koulouzis
  */
 class ChunkUploader {
 
@@ -55,8 +54,8 @@ class ChunkUploader {
     private String putURL;
     private int maxThreads;
     private ThreadPoolExecutor executorService;
-    private int counter = 1;
-    private static final long chunkSize = 1024 * 1024 * 1024;//
+    private int counter = 0;
+    private static final long chunkSize = 3 * 1024 * 1024 * 1024;//
     private int chunkFileNum;
 
     ChunkUploader(File file, String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException {
@@ -69,37 +68,49 @@ class ChunkUploader {
         int cpus = Runtime.getRuntime().availableProcessors();
         maxThreads = cpus * 2;
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
+
         chunkFileNum = (int) (file.length() / chunkSize);
-        if (file.length() % chunkSize == 0) {
+        if (file.length() % chunkFileNum == 0) {
             chunkFileNum++;
         }
         initHttpClient(this.key);
     }
 
     void upload() throws IOException, InterruptedException, ExecutionException {
+        if (authToken == null) {
+            initHttpClient(this.key);
+        }
+        FileInputStream fis = null;
         try {
 
             int read;
-            FileInputStream fis = new FileInputStream(sourceFile);
-            byte[] copyBuffer = new byte[1024 * 1024];
+            fis = new FileInputStream(sourceFile);
+            byte[] copyBuffer = new byte[100 * 1024];
             File bufferFile = File.createTempFile(this.getClass().getSimpleName() + "part" + counter, null);
             FileOutputStream fos = new FileOutputStream(bufferFile);
             while ((read = fis.read(copyBuffer, 0, copyBuffer.length)) != -1) {
                 fos.write(copyBuffer, 0, read);
-                if (bufferFile.length() >= chunkSize || counter >= chunkFileNum) {
+                if (bufferFile.length() >= chunkSize) {
+                    fos.flush();
                     fos.close();
-                    HttpPut put = new HttpPut(putURL + "/_part" + counter++);
-                    put.setHeader(authToken);
-                    put.setEntity(new FileEntity(bufferFile));
-                    ChunkUploader.PutRunnable putTask = new ChunkUploader.PutRunnable(wrapClient(new DefaultHttpClient(cm, params)), bufferFile);
-                    putTask.setPut(put);
-                    executorService.submit(putTask);
+                    debug("Counter: " + counter);
+                    setUpload(bufferFile);
+                    counter++;
                     bufferFile = File.createTempFile(this.getClass().getSimpleName() + "part" + counter, null);
                     fos = new FileOutputStream(bufferFile);
                 }
             }
-
+            if (counter < chunkFileNum) {
+                fos.flush();
+                fos.close();
+                debug("Left over Counter: " + counter);
+                setUpload(bufferFile);
+                counter++;
+            }
         } finally {
+            if (fis != null) {
+                fis.close();
+            }
             setManifestFile();
             int count = executorService.getActiveCount();
             executorService.shutdown();
@@ -110,18 +121,17 @@ class ChunkUploader {
                 Thread.sleep(sleepTime);
             }
             this.cm.closeExpiredConnections();
-            counter = 0;
         }
     }
 
     private void setManifestFile() throws IOException, InterruptedException, ExecutionException {
+        debug("Sending manifest file");
         if (authToken == null) {
             initHttpClient(this.key);
         }
         HttpPut put = new HttpPut(putURL);
         put.setHeader("X-Object-Manifest", container + "/" + blobName);
         put.setHeader(authToken);
-
         ChunkUploader.PutRunnable putTask = new ChunkUploader.PutRunnable(wrapClient(new DefaultHttpClient(cm, params)), null);
         putTask.setPut(put);
         executorService.submit(putTask);
@@ -162,7 +172,7 @@ class ChunkUploader {
         ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
         executorService = new ThreadPoolExecutor(
                 maxThreads, // core thread pool size
-                maxThreads+2, // maximum thread pool size
+                maxThreads + 2, // maximum thread pool size
                 1, // time to wait before resizing pool
                 TimeUnit.HOURS,
                 queue,
@@ -210,6 +220,19 @@ class ChunkUploader {
         return ctx;
     }
 
+    private void debug(String msg) {
+        System.err.println(this.getClass().getName() + ": " + msg);
+    }
+
+    private void setUpload(File bufferFile) {
+        HttpPut put = new HttpPut(putURL + "/_part" + counter);
+        put.setHeader(authToken);
+        put.setEntity(new FileEntity(bufferFile));
+        ChunkUploader.PutRunnable putTask = new ChunkUploader.PutRunnable(wrapClient(new DefaultHttpClient(cm, params)), bufferFile);
+        putTask.setPut(put);
+        executorService.submit(putTask);
+    }
+
     private static class PutRunnable implements Runnable {
 
         private final HttpClient client;
@@ -225,7 +248,7 @@ class ChunkUploader {
         public void run() {
             HttpResponse resp = null;
             try {
-//                debug("Uploading " + put.getURI());
+//                debug("Uploading size: " +  bufferFile.length() / (1024.0 * 1024.0) );
 //                long start = System.currentTimeMillis();
                 resp = client.execute(put);
 //                long end = System.currentTimeMillis();
