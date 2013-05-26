@@ -163,8 +163,8 @@ class ChunkUploader {
         executorService = new ThreadPoolExecutor(
                 maxThreads, // core thread pool size
                 maxThreads, // maximum thread pool size
-                20, // time to wait before resizing pool
-                TimeUnit.SECONDS,
+                1, // time to wait before resizing pool
+                TimeUnit.HOURS,
                 queue,
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
