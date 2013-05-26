@@ -12,5 +12,5 @@ public class Constants {
         "partnercloud", "s3", "synaptic-storage", "transient", "ninefold-storage", 
         "swift", "hpcloud-objectstorage-lvs", "cloudonestorage", "cloudfiles-us", 
         "azureblob", "walrus", "aws-s3", "cloudfiles", FILESYSTEM_SCHME};
-    public static final int TIME_OUT = 60000;
+    public static final int TIME_OUT = 600000;
 }
