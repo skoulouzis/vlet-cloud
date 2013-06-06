@@ -175,18 +175,13 @@ public class CloudFileSystem extends FileSystemNode {
 
             // Check if we stat only the container
             if (StringUtil.isEmpty(restOfThePath)) {
-
                 ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
                 block(res);
-
                 if (res.get()) {
-
                     meta = new StorageMetadataImpl(StorageType.CONTAINER, null,
                             container, null, null, null, null,
                             new HashMap<String, String>());
-
                 }
-
             } else {
                 if (asyncBlobStore == null) {
                     connect();

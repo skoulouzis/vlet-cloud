@@ -85,7 +85,6 @@ public class CloudFile extends VFile implements VChecksum {
         BlobMetadata meta;
         try {
             meta = (BlobMetadata) cvfs.queryPath(getVRL());
-
             return meta.getContentMetadata().getContentLength();
         } catch (InterruptedException e) {
             throw new VlException(e);
