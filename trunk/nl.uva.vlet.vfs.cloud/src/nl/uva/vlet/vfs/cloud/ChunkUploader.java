@@ -71,6 +71,7 @@ class ChunkUploader {
         maxThreads = (maxThreads > 0 ? maxThreads : 1);
 
         chunkFileNum = (int) (file.length() / chunkSize);
+        
         if (file.length() % chunkFileNum != 0) {
             chunkFileNum++;
         }
