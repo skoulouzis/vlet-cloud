@@ -660,7 +660,8 @@ public class CloudFileSystem extends FileSystemNode {
             blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
         }
         File file = new File(localSource.getVRL().toURI());
-        if (file.length() > (Long.valueOf("5368709120")) && vrl.getScheme().equals("swift")) {
+        if (file.length() > (Long.valueOf("5368709120")) && vrl.getScheme().equals("swift")
+                || getJavaVersion() <= 1.6) {
             ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
             uploader.upload();
         } else {
@@ -760,5 +761,16 @@ public class CloudFileSystem extends FileSystemNode {
             }
             props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
         }
+    }
+
+    private static double getJavaVersion() {
+        String version = System.getProperty("java.version");
+        int pos = 0, count = 0;
+        for (; pos < version.length() && count < 2; pos++) {
+            if (version.charAt(pos) == '.') {
+                count++;
+            }
+        }
+        return Double.parseDouble(version.substring(0, pos));
     }
 }
