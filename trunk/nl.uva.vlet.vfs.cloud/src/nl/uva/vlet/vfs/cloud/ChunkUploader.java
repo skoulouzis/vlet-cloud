@@ -56,7 +56,7 @@ class ChunkUploader {
     private int maxThreads;
     private ThreadPoolExecutor executorService;
     private int counter = 0;
-    private long chunkSize = Long.valueOf("3221225472");//3GB
+    private long chunkSize = Long.valueOf("1073741824");//3GB
     private int chunkFileNum;
 
     ChunkUploader(File file, String container, String blobName, AsyncBlobStore asyncBlobStore, String key) throws IOException {
