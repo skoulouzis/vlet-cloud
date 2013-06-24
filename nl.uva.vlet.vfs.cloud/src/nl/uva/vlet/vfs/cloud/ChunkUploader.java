@@ -57,8 +57,10 @@ class ChunkUploader {
     private int counter = 0;
     private long chunkSize = Long.valueOf("524288000");//500MB //Long.valueOf("1073741824");//1GB
     private int chunkFileNum;
+    private final String endpoint;
+    private final String username;
 
-    ChunkUploader(File file, String container, String blobName, BlobStore blobStore, String key) throws IOException {
+    ChunkUploader(File file, String container, String blobName, BlobStore blobStore, String key,String username,String endpoint) throws IOException {
         this.sourceFile = file;
         this.container = container;
         this.blobName = blobName;
@@ -78,6 +80,8 @@ class ChunkUploader {
         if (file.length() % chunkFileNum != 0) {
             chunkFileNum++;
         }
+       this.endpoint = endpoint;
+       this.username= username;
         initHttpClient(this.key);
     }
 
@@ -143,45 +147,45 @@ class ChunkUploader {
     }
 
     private void initHttpClient(String key) throws IOException {
-//        params = new BasicHttpParams();
-//        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, Constants.TIME_OUT);
-//        params.setParameter("http.socket.timeout", Constants.TIME_OUT);
-//
+        params = new BasicHttpParams();
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, Constants.TIME_OUT);
+        params.setParameter("http.socket.timeout", Constants.TIME_OUT);
+
 //        RestContext<Object, Object> ctx = blobStore.getContext().getProviderSpecificContext();
 //        URI endpoint = ctx.getEndpoint();
-//
-//        HttpGet getMethod = new HttpGet(endpoint);
-//        getMethod.getParams().setIntParameter("http.socket.timeout", Constants.TIME_OUT);
-//        getMethod.setHeader("x-auth-user", ctx.getIdentity());
-//        getMethod.setHeader("x-auth-key", key);
-//
-//        cm = new PoolingClientConnectionManager();
-//        cm.setMaxTotal(500);
-//        cm.setDefaultMaxPerRoute(500);
-//        DefaultHttpClient client = new DefaultHttpClient(cm, params);
-//        HttpClient wrapClient1 = wrapClient(client);
-//
-//        HttpResponse resp = wrapClient1.execute(getMethod);
-//        if (resp.getStatusLine().getStatusCode() != 200) {
-//            throw new IOException(resp.getStatusLine().toString());
-//        }
-//
-//        storageURLHeader = resp.getFirstHeader("X-Storage-Url");
-//        authToken = resp.getFirstHeader("X-Auth-Token");
-//
-//        wrapClient1.getConnectionManager().closeExpiredConnections();
-//
-//        putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
-//        EntityUtils.consume(resp.getEntity());
-//
-//        ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
-//        executorService = new ThreadPoolExecutor(
-//                maxThreads, // core thread pool size
-//                maxThreads + 2, // maximum thread pool size
-//                1, // time to wait before resizing pool
-//                TimeUnit.HOURS,
-//                queue,
-//                new ThreadPoolExecutor.CallerRunsPolicy());
+
+        HttpGet getMethod = new HttpGet(endpoint);
+        getMethod.getParams().setIntParameter("http.socket.timeout", Constants.TIME_OUT);
+        getMethod.setHeader("x-auth-user", username);
+        getMethod.setHeader("x-auth-key", key);
+
+        cm = new PoolingClientConnectionManager();
+        cm.setMaxTotal(500);
+        cm.setDefaultMaxPerRoute(500);
+        DefaultHttpClient client = new DefaultHttpClient(cm, params);
+        HttpClient wrapClient1 = wrapClient(client);
+
+        HttpResponse resp = wrapClient1.execute(getMethod);
+        if (resp.getStatusLine().getStatusCode() != 200) {
+            throw new IOException(resp.getStatusLine().toString());
+        }
+
+        storageURLHeader = resp.getFirstHeader("X-Storage-Url");
+        authToken = resp.getFirstHeader("X-Auth-Token");
+
+        wrapClient1.getConnectionManager().closeExpiredConnections();
+
+        putURL = storageURLHeader.getValue() + "/" + container + "/" + blobName;
+        EntityUtils.consume(resp.getEntity());
+
+        ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(maxThreads);
+        executorService = new ThreadPoolExecutor(
+                maxThreads, // core thread pool size
+                maxThreads + 2, // maximum thread pool size
+                1, // time to wait before resizing pool
+                TimeUnit.HOURS,
+                queue,
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     private org.apache.http.client.HttpClient wrapClient(org.apache.http.client.HttpClient base) {

@@ -45,6 +45,8 @@ public class CloudFileSystem extends FileSystemNode {
     private HashMap<VRL, CloudMetadataWrapper> cache = new HashMap<VRL, CloudMetadataWrapper>();
     private Boolean doChunkUpload;
     private BlobStore blobstore;
+    private int swiftVersion;
+    private String endpoint;
 
     {
         try {
@@ -623,17 +625,17 @@ public class CloudFileSystem extends FileSystemNode {
         }
         File file = new File(localSource.getVRL().toURI());
         Long fileLimit = Long.valueOf("2147483648");
-//        if (file.length() > fileLimit && vrl.getScheme().equals("swift")) {
-//            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
-//            uploader.upload();
-//        } else {
-        blob.setPayload(file);
-        if (file.length() > (50 * 1024 * 1024)) {
-            blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+        if (file.length() > fileLimit && vrl.getScheme().equals("swift") && swiftVersion == 1) {
+            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL), props.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY), endpoint);
+            uploader.upload();
         } else {
-            blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            blob.setPayload(file);
+            if (file.length() > (50 * 1024 * 1024)) {
+                blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+            } else {
+                blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+            }
         }
-//        }
         if (transferInfo != null) {
             transferInfo.endTask("UploadToSwift");
         }
@@ -653,7 +655,7 @@ public class CloudFileSystem extends FileSystemNode {
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
         }
-
+        swiftVersion = 1;
         VRL serverVRL = info.getServerVRL();
         if (!serverVRL.getScheme().equals(Constants.FILESYSTEM_SCHME)) {
             //get rid of all paths 
@@ -667,9 +669,10 @@ public class CloudFileSystem extends FileSystemNode {
                 props.setProperty(KeystoneProperties.CREDENTIAL_TYPE, CredentialTypes.PASSWORD_CREDENTIALS);
                 props.setProperty(org.jclouds.Constants.PROPERTY_API_VERSION, "2");
                 newServerVRL = tmp2;
+                swiftVersion = 2;
             }
 
-            String endpoint = newServerVRL.copyWithNewScheme(authServiceSchema).toString();
+            endpoint = newServerVRL.copyWithNewScheme(authServiceSchema).toString();
 //            debug("Endpoint: " + endpoint);
 
             if (StringUtil.isEmpty(endpoint)) {
