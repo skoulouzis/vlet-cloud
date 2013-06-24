@@ -16,15 +16,18 @@ import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
 import nl.uva.vlet.vrs.VRSContext;
-import org.jclouds.blobstore.AsyncBlobStore;
+import org.jclouds.ContextBuilder;
+import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
-import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.filesystem.reference.FilesystemConstants;
+import org.jclouds.http.HttpResponseException;
 import org.jclouds.io.Payload;
+import org.jclouds.openstack.keystone.v2_0.config.CredentialTypes;
+import org.jclouds.openstack.keystone.v2_0.config.KeystoneProperties;
 
 /**
  *
@@ -37,10 +40,11 @@ public class CloudFileSystem extends FileSystemNode {
 
     private String provider;
     private Properties props;
-    private String prefixPath = "/auth/v1.0";
+    private String[] prefixPaths = {"/auth/v1.0", "/v2.0/"};
     static ClassLogger logger;
     private HashMap<VRL, CloudMetadataWrapper> cache = new HashMap<VRL, CloudMetadataWrapper>();
     private Boolean doChunkUpload;
+    private BlobStore blobstore;
 
     {
         try {
@@ -51,7 +55,7 @@ public class CloudFileSystem extends FileSystemNode {
             Logger.getLogger(CloudFileSystem.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    private AsyncBlobStore asyncBlobStore;
+//    private AsyncBlobStore blobstore;
 //    private boolean useCache = true;
     private boolean debug = true;
 //    private static int bufferSize = -1;
@@ -64,9 +68,12 @@ public class CloudFileSystem extends FileSystemNode {
         try {
             connect();
         } catch (Exception ex) {
-            if (ex.getMessage() != null && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")) {
+            if (ex instanceof VlConfigurationError && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")) {
+                disconnect();
                 init(info, context, "http");
                 connect();
+            }
+            if (ex.getMessage() != null && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")) {
             } else {
                 throw new nl.uva.vlet.exception.VlInitializationException(ex.getMessage());
             }
@@ -152,13 +159,15 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private String removePrefix(String path) {
-        if (!path.contains(prefixPath)) {
-            return path;
+        for (String p : prefixPaths) {
+            if (path.length() <= p.length()) {
+                return "";
+            }
+            if (path.contains(p)) {
+                return path.substring(p.length());
+            }
         }
-        if (path.length() <= prefixPath.length()) {
-            return "";
-        }
-        return path.substring(prefixPath.length());
+        return path;
     }
 
     protected StorageMetadata queryPath(VRL path) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceNotFoundException, CloudRequestTimeout, VlException {
@@ -175,21 +184,21 @@ public class CloudFileSystem extends FileSystemNode {
 
             // Check if we stat only the container
             if (StringUtil.isEmpty(restOfThePath)) {
-                ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
-                block(res);
-                if (res.get()) {
-                    meta = new StorageMetadataImpl(StorageType.CONTAINER, null,
-                            container, null, null, null, null,
-                            new HashMap<String, String>());
+                //                ListenableFuture<Boolean> res = blobstore.containerExists(container);
+                //                block(res);
+                boolean exists = blobstore.containerExists(container);
+                if (exists) {
+                    meta = new StorageMetadataImpl(StorageType.CONTAINER, container, null, null, null, null, null, null, new HashMap<String, String>());
+//                    meta = new StorageMetadataImpl(StorageType.CONTAINER, null,
+//                            container, null, null, null, null,
+//                            new HashMap<String, String>());
                 }
             } else {
-                if (asyncBlobStore == null) {
+                if (blobstore == null) {
                     connect();
                 }
-                ListenableFuture<BlobMetadata> res = asyncBlobStore.blobMetadata(
+                meta = blobstore.blobMetadata(
                         container, restOfThePath);
-                block(res);
-                meta = res.get();
             }
         } catch (org.jclouds.blobstore.ContainerNotFoundException e) {
             throw new nl.uva.vlet.exception.ResourceNotFoundException(path
@@ -217,7 +226,7 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public boolean isConnected() {
-        if (asyncBlobStore == null) {
+        if (blobstore == null) {
             return false;
         } else {
             return true;
@@ -226,23 +235,35 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public void connect() throws VlException {
-        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
-        this.asyncBlobStore = blobStoreContext.getAsyncBlobStore();
+        BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
+        blobstore = blobStoreContext.getBlobStore();
+        try {
+            blobstore.containerExists("");
+        } catch (Exception ex) {
+            if (ex instanceof org.jclouds.rest.AuthorizationException) {
+                throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
+            }
+            if (ex instanceof HttpResponseException && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")) {
+                throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
+            }
+        }
+        //        blobstore.countBlobs("");
+        //        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
+        //        this.blobstore = blobStoreContext.getAsyncBlobStore();
     }
 
     @Override
     public void disconnect() throws VlException {
 //        getBlobStoreContext().close();
-        asyncBlobStore.getContext().close();
-        asyncBlobStore = null;
+        blobstore.getContext().close();
+        blobstore = null;
         getCache().clear();
     }
 
     @Override
     public void dispose() {
-//        getBlobStoreContext().close();
-        asyncBlobStore.getContext().close();
-        asyncBlobStore = null;
+        blobstore.getContext().close();
+        blobstore = null;
         getCache().clear();
     }
 
@@ -251,17 +272,14 @@ public class CloudFileSystem extends FileSystemNode {
         long numOfNodes;
         String[] containerAndPath = getContainerAndPath(vrl);
         try {
-            ListenableFuture<Long> res = null;
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
-                res = asyncBlobStore.countBlobs(containerAndPath[0]);
+                numOfNodes = blobstore.countBlobs(containerAndPath[0]);
             } else {
-                res = asyncBlobStore.countBlobs(
+                numOfNodes = blobstore.countBlobs(
                         containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
             }
-            block(res);
-            numOfNodes = res.get();
             CloudMetadataWrapper cmw = getCache().get(vrl);
             if (cmw == null) {
                 cmw = new CloudMetadataWrapper(null);
@@ -317,19 +335,14 @@ public class CloudFileSystem extends FileSystemNode {
 
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
-                if (asyncBlobStore == null) {
-                    debug("asyncBlobStore == null");
+                if (blobstore == null) {
+                    debug("blobstore == null");
                     this.connect();
                 }
-                ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
-                block(resContainerExists);
-                // This waits for request to complete
-                exists = resContainerExists.get();
+                exists = blobstore.containerExists(containerAndPath[0]);
             } else if (containerAndPath.length > 1) {
                 try {
-                    ListenableFuture<BlobMetadata> metaRes = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-                    block(metaRes);
-                    meta = metaRes.get();
+                    meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
                 } catch (Exception ex) {
                     if (ex != null && ex.getMessage() != null && ex.getMessage().contains("(Is a directory)")) {
                         if (type != StorageType.BLOB) {
@@ -368,35 +381,20 @@ public class CloudFileSystem extends FileSystemNode {
         if (containerAndPath.length <= 1
                 || StringUtil.isEmpty(containerAndPath[1])) {
 
-            ListenableFuture<Void> res = asyncBlobStore.deleteContainer(containerAndPath[0]);
-            block(res);
-            // This waits for request to complete
-            res.get();
+            blobstore.deleteContainer(containerAndPath[0]);
             removed = true;
         } else if (containerAndPath.length > 1) {
-            ListenableFuture<Void> resRemove = null;
+
             if (type != StorageType.BLOB) {
-                resRemove = asyncBlobStore.deleteDirectory(containerAndPath[0], containerAndPath[1]);
+                blobstore.deleteDirectory(containerAndPath[0], containerAndPath[1]);
             } else {
-                ListenableFuture<PageSet<? extends StorageMetadata>> res = asyncBlobStore.list(containerAndPath[0],
+                PageSet<? extends StorageMetadata> list = blobstore.list(containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
-                PageSet<? extends StorageMetadata> list = res.get();
 
-                ArrayList<ListenableFuture> delete = new ArrayList<ListenableFuture>();
                 for (StorageMetadata m : list) {
-                    delete.add(asyncBlobStore.removeBlob(containerAndPath[0], m.getName()));
+                    blobstore.removeBlob(containerAndPath[0], m.getName());
                 }
-                delete.add(asyncBlobStore.removeBlob(containerAndPath[0], containerAndPath[1]));
-
-                for (int i = 0; i < delete.size(); i++) {
-                    ListenableFuture f = delete.get(i);
-                    f.get();
-                    delete.remove(f);
-                }
-            }
-            block(resRemove);
-            if (resRemove != null) {
-                resRemove.get();
+                blobstore.removeBlob(containerAndPath[0], containerAndPath[1]);
             }
             removed = true;
         }
@@ -413,26 +411,24 @@ public class CloudFileSystem extends FileSystemNode {
         try {
             String[] containerAndPath = getContainerAndPath(vrl);
 
-            ListenableFuture<PageSet<? extends StorageMetadata>> result;
 
+            PageSet<? extends StorageMetadata> list;
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
 
                 logger.debugPrintf("list(%s).\n ", containerAndPath[0]);
 
-                result = asyncBlobStore.list(containerAndPath[0]);
+                list = blobstore.list(containerAndPath[0]);
 
             } else {
                 logger.debugPrintf("list(%s/%s).\n ", containerAndPath[0],
                         containerAndPath[1]);
-                result = asyncBlobStore.list(containerAndPath[0],
+                list = blobstore.list(containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
 
             }
 
             ArrayList<VFSNode> nodes = new ArrayList<VFSNode>();
-            block(result);
-            PageSet<? extends StorageMetadata> list = result.get();
 
             for (StorageMetadata s : list) {
                 VRL nodeVRL = vrl.append(s.getName());
@@ -464,11 +460,8 @@ public class CloudFileSystem extends FileSystemNode {
 
             String[] containerAndPath = getContainerAndPath(vrl);
 
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0],
+            Blob blob = blobstore.getBlob(containerAndPath[0],
                     containerAndPath[1]);
-
-            block(res);
-            Blob blob = res.get();
 
             Payload payload = blob.getPayload();
             return new BufferedInputStream(payload.getInput(), 5242880);
@@ -484,11 +477,11 @@ public class CloudFileSystem extends FileSystemNode {
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
 //                provider, props);
 //        if (vrl.getScheme().equals("swift")) {
-        if (vrl.getScheme().equals("swift") && doChunkUpload != null && doChunkUpload) {
-            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
-        } else {
-            return new CloudOutputStream(containerAndPath[0], containerAndPath[1], asyncBlobStore);
-        }
+//        if (vrl.getScheme().equals("swift") && doChunkUpload != null && doChunkUpload) {
+//            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
+//        } else {
+        return new CloudOutputStream(containerAndPath[0], containerAndPath[1], blobstore);
+//        }
 
     }
 
@@ -499,9 +492,7 @@ public class CloudFileSystem extends FileSystemNode {
         ListenableFuture<BlobMetadata> blobMeta = null;
         BlobMetadata meta = null;
         try {
-            blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-            block(blobMeta);
-            meta = blobMeta.get();
+            meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
         } catch (Exception ex) {
             if (ex.getMessage().contains("(Is a directory)")) {
                 throw new ResourceAlreadyExistsException(
@@ -511,11 +502,9 @@ public class CloudFileSystem extends FileSystemNode {
 
         if (meta == null) {
             //Ok non existing 
-            Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
+            Blob blob = blobstore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
             blob.setPayload("");
-            ListenableFuture<String> res = asyncBlobStore.putBlob(containerAndPath[0], blob);
-            block(res);
-            res.get();
+            String tag = blobstore.putBlob(containerAndPath[0], blob);
             created = true;
         } else {
             //What is it?
@@ -543,9 +532,7 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private boolean createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, CloudRequestTimeout {
-        ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
-        block(res);
-        Boolean containerExists = res.get();
+        Boolean containerExists = blobstore.containerExists(container);
         if (containerExists && !ignoreExisting) {
             throw new ResourceAlreadyExistsException(
                     container + "Exists");
@@ -553,11 +540,8 @@ public class CloudFileSystem extends FileSystemNode {
             //return new CloudDir(this, vrl);
             return true;
         }
-        ListenableFuture<Boolean> createContainer = asyncBlobStore.createContainerInLocation(null,
+        Boolean created = blobstore.createContainerInLocation(null,
                 container);
-        block(createContainer);
-        Boolean created = createContainer.get();
-
         if (!created) {
             throw new ResourceCreationFailedException(
                     "Could not create " + container);
@@ -570,9 +554,7 @@ public class CloudFileSystem extends FileSystemNode {
         //Exists ?
         BlobMetadata meta = null;
         try {
-            ListenableFuture<BlobMetadata> blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-            block(blobMeta);
-            meta = blobMeta.get();
+            meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
         } catch (Exception ex) {
             if (ex.getMessage().contains("(Is a directory)") && !ignoreExisting) {
                 throw new ResourceAlreadyExistsException(ex.getMessage());
@@ -583,9 +565,7 @@ public class CloudFileSystem extends FileSystemNode {
         if (meta == null) {
             //Ok non existing
 //            try {
-            ListenableFuture<Void> createdDirRes = asyncBlobStore.createDirectory(containerAndPath[0], containerAndPath[1]);
-            block(createdDirRes);
-            createdDirRes.get();
+            blobstore.createDirectory(containerAndPath[0], containerAndPath[1]);
             //return new CloudDir(this, vrl);
             return;
         }
@@ -602,39 +582,23 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     void setContentsToFile(byte[] bytes, VRL vrl) throws VRLSyntaxException, VlException {
-        try {
-            String[] containerAndPath = getContainerAndPath(vrl);
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-            block(res);
-            Blob blob = res.get();
-            if (blob == null) {
-                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
-            }
-            blob.setPayload(bytes);
-            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
-        } catch (InterruptedException ex) {
-            throw new VlException(ex);
-        } catch (ExecutionException ex) {
-            throw new VlException(ex);
+        String[] containerAndPath = getContainerAndPath(vrl);
+        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
+        if (blob == null) {
+            blob = blobstore.blobBuilder(containerAndPath[1]).build();
         }
+        blob.setPayload(bytes);
+        blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
     }
 
     void setContentsToFile(String contents, VRL vrl) throws VRLSyntaxException, VlException {
-        try {
-            String[] containerAndPath = getContainerAndPath(vrl);
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-            block(res);
-            Blob blob = res.get();
-            if (blob == null) {
-                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
-            }
-            blob.setPayload(contents);
-            asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
-        } catch (InterruptedException ex) {
-            throw new VlException(ex);
-        } catch (ExecutionException ex) {
-            throw new VlException(ex);
+        String[] containerAndPath = getContainerAndPath(vrl);
+        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
+        if (blob == null) {
+            blob = blobstore.blobBuilder(containerAndPath[1]).build();
         }
+        blob.setPayload(contents);
+        blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
     }
 
     /**
@@ -653,25 +617,23 @@ public class CloudFileSystem extends FileSystemNode {
             transferInfo.startSubTask("UploadToSwift", localSource.getLength());
         }
         String[] containerAndPath = getContainerAndPath(vrl);
-        ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-        block(res);
-        Blob blob = res.get();
+        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
         if (blob == null) {
-            blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
+            blob = blobstore.blobBuilder(containerAndPath[1]).build();
         }
         File file = new File(localSource.getVRL().toURI());
         Long fileLimit = Long.valueOf("2147483648");
-        if (file.length() > fileLimit && vrl.getScheme().equals("swift")) {
-            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], asyncBlobStore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
-            uploader.upload();
+//        if (file.length() > fileLimit && vrl.getScheme().equals("swift")) {
+//            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
+//            uploader.upload();
+//        } else {
+        blob.setPayload(file);
+        if (file.length() > (50 * 1024 * 1024)) {
+            blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
         } else {
-            blob.setPayload(file);
-            if (file.length() > (50 * 1024 * 1024)) {
-                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
-            } else {
-                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
-            }
+            blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
         }
+//        }
         if (transferInfo != null) {
             transferInfo.endTask("UploadToSwift");
         }
@@ -694,7 +656,20 @@ public class CloudFileSystem extends FileSystemNode {
 
         VRL serverVRL = info.getServerVRL();
         if (!serverVRL.getScheme().equals(Constants.FILESYSTEM_SCHME)) {
-            String endpoint = serverVRL.copyWithNewScheme(authServiceSchema).toString();
+            //get rid of all paths 
+            VRL tmp = serverVRL.copyWithNewPath("");
+            VRL tmp2 = tmp.appendPath(serverVRL.getPathElements()[0]);
+            VRL newServerVRL;
+            if (serverVRL.getPathElements()[0].equals("auth")) {
+                newServerVRL = tmp2.appendPath(serverVRL.getPathElements()[1]);
+            } else {
+                provider = "swift-keystone";
+                props.setProperty(KeystoneProperties.CREDENTIAL_TYPE, CredentialTypes.PASSWORD_CREDENTIALS);
+                props.setProperty(org.jclouds.Constants.PROPERTY_API_VERSION, "2");
+                newServerVRL = tmp2;
+            }
+
+            String endpoint = newServerVRL.copyWithNewScheme(authServiceSchema).toString();
 //            debug("Endpoint: " + endpoint);
 
             if (StringUtil.isEmpty(endpoint)) {

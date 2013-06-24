@@ -49,6 +49,7 @@ public class testVFSCloud extends testVFS {
     static {
         try {
             testLoc = new VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
+//            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
 //            testLoc = new VRL(
 //                    "filesystem:/testBlobStoreVFS");
         } catch (VRLSyntaxException e) {
