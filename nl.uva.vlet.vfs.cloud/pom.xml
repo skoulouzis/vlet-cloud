@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.uva.vlet</groupId>
     <artifactId>vlet-vfs.cloud</artifactId>
-    <version>1.1</version>
+    <version>2.0</version>
     <build>
         <sourceDirectory>src</sourceDirectory>
         <plugins>
@@ -38,7 +38,7 @@
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-allblobstore</artifactId>
-            <version>1.3.1</version>
+            <version>1.6.0</version>
         </dependency>
          
         <dependency>
@@ -63,22 +63,91 @@
             <artifactId>httpclient</artifactId>
             <version>4.2.2</version>
         </dependency>
+        
         <dependency>
             <groupId>nl.uva.vlet</groupId>
             <artifactId>vlet-vrs.core</artifactId>
             <version>1.5.0-dev-1</version>
         </dependency>
+
         
-        
-         
         <dependency>
             <groupId>nl.uva.vlet</groupId>
-            <artifactId>vlet-vfs.jcraft.ssh</artifactId>
+            <artifactId>vlet-vfs.gftp</artifactId>
             <version>1.5.0-dev-1</version>
+            <scope>runtime</scope>
+        </dependency>       
+        
+        
+        <dependency>
+            <groupId>com.claymoresystems</groupId>
+            <artifactId>puretls</artifactId>
+            <version>0.1</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+
+        <dependency>
+            <groupId>cryptix</groupId>
+            <artifactId>cryptix-asn1</artifactId>
+            <version>1.0</version>
+            <scope>runtime</scope>
+        </dependency>
+                
+        <dependency>
+            <groupId>cryptix</groupId>
+            <artifactId>cryptix32</artifactId>
+            <version>3.2.0</version>
+            <scope>runtime</scope>
+        </dependency>
+                
+                
+        <dependency>
+            <groupId>cryptix</groupId>
+            <artifactId>cryptix</artifactId>
+            <version>1.0</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>nl.uva.vlet</groupId>
+            <artifactId>vlet-grid.globus</artifactId>
+            <version>1.5.0-dev-1</version>
+            <scope>runtime</scope>
+        </dependency>  
+        
+        
+        <dependency>
+            <groupId>org.globus</groupId>
+            <artifactId>cog-jglobus</artifactId>
+            <version>1.4</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.globus</groupId>
+            <artifactId>cog-url</artifactId>
+            <version>1.4</version>
             <scope>runtime</scope>
         </dependency>
         
         
+        <dependency>
+            <groupId>bouncycastle</groupId>
+            <artifactId>jce-jdk13</artifactId>
+            <version>131</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15</artifactId>
+            <version>1.43</version>
+            <scope>runtime</scope>
+        </dependency>
+            
+                
         <dependency>
             <groupId>nl.uva.vlet</groupId>
             <artifactId>vlet-vfs.srm</artifactId>
@@ -93,20 +162,6 @@
             <scope>runtime</scope>
         </dependency>
         
-        <dependency>
-            <groupId>nl.uva.vlet</groupId>
-            <artifactId>vlet-vfs.gftp</artifactId>
-            <version>1.5.0-dev-1</version>
-            <scope>runtime</scope>
-        </dependency>
-        
-<!--        dependency for gftp driver -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk16</artifactId>
-            <version>1.46</version>
-            <scope>runtime</scope>
-        </dependency>
         <dependency>
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>

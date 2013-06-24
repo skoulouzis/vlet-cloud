@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutionException;
 
 import nl.uva.vlet.ClassLogger;
 
-import org.jclouds.blobstore.AsyncBlobStore;
+import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.domain.Blob;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -30,7 +30,7 @@ public class CloudOutputStream extends OutputStream {
         logger = ClassLogger.getLogger(CloudOutputStream.class);
         logger.setLevelToDebug();
     }
-    private final AsyncBlobStore asyncBlobStore;
+    private final BlobStore blobStore;
 
 //    public CloudOutputStream(String container, String blobName,
 //            String provider, Properties props) throws IOException {
@@ -43,11 +43,11 @@ public class CloudOutputStream extends OutputStream {
 //
 //        fos = new FileOutputStream(bufferFile);
 //    }
-    CloudOutputStream(String container, String blobName, AsyncBlobStore asyncBlobStore) throws IOException {
+    CloudOutputStream(String container, String blobName, BlobStore blobStore) throws IOException {
         this.container = container;
         this.blobName = blobName;
 
-        this.asyncBlobStore = asyncBlobStore;
+        this.blobStore = blobStore;
 
         bufferFile = File.createTempFile(this.getClass().getSimpleName(), null);
         fos = new FileOutputStream(bufferFile);
@@ -62,18 +62,16 @@ public class CloudOutputStream extends OutputStream {
 
         try {
 
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(container, blobName);
-            
-            Blob blob = res.get();
+            Blob blob = blobStore.getBlob(container, blobName);
             if (blob == null) {
-                blob = asyncBlobStore.blobBuilder(blobName).build();
+                blob = blobStore.blobBuilder(blobName).build();
             }
 
             blob.setPayload(bufferFile);
             if (bufferFile.length() > (800 * 1024 * 1024)) {
-                asyncBlobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
+                blobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
             } else {
-                asyncBlobStore.getContext().getBlobStore().putBlob(container, blob);
+                blobStore.getContext().getBlobStore().putBlob(container, blob);
             }
         } finally {
             bufferFile.delete();

@@ -31,7 +31,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
-import org.jclouds.blobstore.BlobStoreContextFactory;
 import org.jclouds.blobstore.domain.Blob;
 import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageType;
@@ -50,8 +49,15 @@ import javax.net.ssl.*;
 import nl.uva.vlet.vfs.cloud.Constants;
 import org.apache.http.StatusLine;
 import org.apache.http.entity.ByteArrayEntity;
+import org.jclouds.Context;
+import org.jclouds.ContextBuilder;
+import org.jclouds.blobstore.BlobStore;
+import org.jclouds.blobstore.domain.PageSet;
+import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.domain.Credentials;
 import org.jclouds.http.HttpRequest;
+import org.jclouds.openstack.keystone.v2_0.config.CredentialTypes;
+import org.jclouds.openstack.keystone.v2_0.config.KeystoneProperties;
 import org.jclouds.rest.HttpAsyncClient;
 import org.jclouds.rest.HttpClient;
 import org.jclouds.rest.RestContext;
@@ -62,14 +68,16 @@ import org.jclouds.rest.RestContext;
  */
 public class TestBlobStore {
 
-    private static AsyncBlobStore asyncBlobStore;
+//    private static AsyncBlobStore blobstore;
     private static String endpoint;
     private static Properties props;
+    private static BlobStore blobstore;
 
     public static void main(String args[]) {
         try {
             setup();
-//        testToch();
+            ls();
+//            testToch();
 //            touch(true);
 //            mkdir(true);
 //            rm();
@@ -78,13 +86,13 @@ public class TestBlobStore {
 //            getOutPutStream();
 //            login();
 
-            put();
+//            put();
 //            put2();
-
+//            blobstore.getBlob(ds.getContainer(), ds.getName(), range(start, end));
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
-            asyncBlobStore.getContext().close();
+            blobstore.getContext().close();
         }
 
     }
@@ -105,20 +113,17 @@ public class TestBlobStore {
             String[] containerAndPath = new String[]{"testBlobStoreVFS", "dirListTest2/file0"};
 
             startTime = System.currentTimeMillis();
-
-            ListenableFuture<Blob> res = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-
-            Blob blob = res.get();
+            Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
             if (blob == null) {
-//                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).build();
-                blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
+//                blob = blobstore.blobBuilder(containerAndPath[1]).build();
+                blob = blobstore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
 
             }
             blob.setPayload(bufferFile);
             if (bufferFile.length() > (800 * 1024 * 1024)) {
-                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+                blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
             } else {
-                asyncBlobStore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+                blobstore.putBlob(containerAndPath[0], blob);
             }
         } finally {
             bufferFile.delete();
@@ -138,21 +143,14 @@ public class TestBlobStore {
 
         if (containerAndPath.length <= 1
                 || StringUtil.isEmpty(containerAndPath[1])) {
-
-            ListenableFuture<Boolean> resContainerExists = asyncBlobStore.containerExists(containerAndPath[0]);
-
-            // This waits for request to complete
-            return resContainerExists.get();
+            return blobstore.containerExists(containerAndPath[0]);
 
         } else if (containerAndPath.length > 1) {
-
-            ListenableFuture<BlobMetadata> metaRes = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-            BlobMetadata meta = metaRes.get();
+            BlobMetadata meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
 
             if (meta != null && meta.getType() == type) {
                 return true;
             }
-
         }
         return false;
     }
@@ -163,34 +161,30 @@ public class TestBlobStore {
 
         if (containerAndPath.length <= 1
                 || StringUtil.isEmpty(containerAndPath[1])) {
-
-            ListenableFuture<Void> res = asyncBlobStore.deleteContainer(containerAndPath[0]);
-            // This waits for request to complete
-            res.get();
+            blobstore.deleteContainer(containerAndPath[0]);
             return true;
         } else if (containerAndPath.length > 1) {
-            ListenableFuture<Void> resRemove = asyncBlobStore.removeBlob(containerAndPath[0], containerAndPath[1]);
-            resRemove.get();
+            blobstore.removeBlob(containerAndPath[0], containerAndPath[1]);
+//            ListenableFuture<Void> resRemove = blobstore.removeBlob(containerAndPath[0], containerAndPath[1]);
+//            resRemove.get();
             return true;
         }
         return false;
     }
 
     private static void testToch() throws InterruptedException, ExecutionException, IOException {
-
-
         String[] containerAndPath = new String[]{"testBlobStoreVFS", "testReplicable.txt"};
+        if (!blobstore.containerExists(containerAndPath[0])) {
+            blobstore.createContainerInLocation(null, containerAndPath[0]);
+        }
 
-
-        Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).payload("data2").build();
-
-        ListenableFuture<String> res = asyncBlobStore.putBlob(
+        Blob blob = blobstore.blobBuilder(containerAndPath[1]).payload("data2").build();
+        String res = blobstore.putBlob(
                 containerAndPath[0], blob);
 
 
-        String get = res.get();
-        ListenableFuture<Blob> theBlob = asyncBlobStore.getBlob(containerAndPath[0], containerAndPath[1]);
-        blob = theBlob.get();
+        blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
+
         InputStream ins = blob.getPayload().getInput();
         byte[] data = new byte[1024];
         ins.read(data);
@@ -198,7 +192,7 @@ public class TestBlobStore {
 
         debug("Content: " + new String(data));
 
-//        blob = asyncBlobStore.blobBuilder(containerAndPath[1]).payload("").build();
+//        blob = blobstore.blobBuilder(containerAndPath[1]).payload("").build();
 //        get = res.get();
 
     }
@@ -212,15 +206,16 @@ public class TestBlobStore {
         String[] containerAndPath = new String[]{"testBlobStoreVFS", "nonExisting"};
 
         //Exists ?
-        ListenableFuture<BlobMetadata> blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-        BlobMetadata meta = blobMeta.get();
+//        ListenableFuture<BlobMetadata> blobMeta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+//                BlobMetadata meta = blobMeta.get();
+        BlobMetadata meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
         if (meta == null) {
             //Ok non existing 
-            Blob blob = asyncBlobStore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
+            Blob blob = blobstore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
             blob.setPayload("");
-            ListenableFuture<String> res = asyncBlobStore.putBlob(containerAndPath[0], blob);
+            String res = blobstore.putBlob(containerAndPath[0], blob);
 
-            res.get();
+//            res.get();
 
             return true;
         }
@@ -248,19 +243,33 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        String provider = "filesystem";//"swift"; // "in-memory" "filesystem";//
-//        Properties props = new Properties();
-
+        endpoint = "http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
+        String provider = "swift";//"swift"; // "in-memory" "filesystem";//
+        String version = "v2.0";
+        if (endpoint.endsWith("/")) {
+            version = "v2.0/";
+        }
+        //        Properties props = new Properties();
         props = getCloudProperties();
+        if (endpoint.endsWith(version)) {
+            provider = "swift-keystone";
+//            debug("CredentialTypes: "+CredentialTypes.PASSWORD_CREDENTIALS);
+//            debug("CREDENTIAL_TYPE: "+KeystoneProperties.CREDENTIAL_TYPE);
+            props.setProperty(KeystoneProperties.CREDENTIAL_TYPE, CredentialTypes.PASSWORD_CREDENTIALS);
+            props.setProperty(org.jclouds.Constants.PROPERTY_API_VERSION, "2");
+        }
 
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
         }
-        endpoint = "https://149.156.10.131:8443/auth/v1.0/";
+
         props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
         props.setProperty(org.jclouds.Constants.PROPERTY_TRUST_ALL_CERTS,
                 "true");
         props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
+
+
+
 
         String path = System.getProperty("user.home") + "/.local/filesystemstorage";
         File localStorage = new File(path);
@@ -269,9 +278,10 @@ public class TestBlobStore {
 
         }
         props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
-
-        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
-        asyncBlobStore = blobStoreContext.getAsyncBlobStore();
+        //        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
+        //        blobstore = blobStoreContext.getAsyncBlobStore();
+        BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
+        blobstore = blobStoreContext.getBlobStore();
     }
 
     private static void debug(String msg) {
@@ -291,8 +301,7 @@ public class TestBlobStore {
     }
 
     private static void createContainer(String container, boolean ignoreExisting) throws ResourceAlreadyExistsException, InterruptedException, ExecutionException, ResourceCreationFailedException {
-        ListenableFuture<Boolean> res = asyncBlobStore.containerExists(container);
-        Boolean containerExists = res.get();
+        Boolean containerExists = blobstore.containerExists(container);
         if (containerExists && !ignoreExisting) {
             throw new nl.uva.vlet.exception.ResourceAlreadyExistsException(
                     container + "Exists");
@@ -300,9 +309,8 @@ public class TestBlobStore {
             //return new CloudDir(this, vrl);
             return;
         }
-        ListenableFuture<Boolean> createContainer = asyncBlobStore.createContainerInLocation(null,
+        Boolean created = blobstore.createContainerInLocation(null,
                 container);
-        Boolean created = createContainer.get();
 
         if (!created) {
             throw new nl.uva.vlet.exception.ResourceCreationFailedException(
@@ -313,15 +321,14 @@ public class TestBlobStore {
     }
 
     private static void createFolder(String[] containerAndPath, boolean ignoreExisting) throws ExecutionException, InterruptedException, ResourceAlreadyExistsException, ResourceException {
-
         //Exists ?
-        ListenableFuture<BlobMetadata> blobMeta = asyncBlobStore.blobMetadata(containerAndPath[0], containerAndPath[1]);
-        BlobMetadata meta = blobMeta.get();
+        BlobMetadata meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+
         if (meta == null) {
             //Ok non existing
             try {
-                ListenableFuture<Void> createdDirRes = asyncBlobStore.createDirectory(containerAndPath[0], containerAndPath[1]);
-                createdDirRes.get();
+
+                blobstore.createDirectory(containerAndPath[0], containerAndPath[1]);
                 //return new CloudDir(this, vrl);
                 return;
             } catch (Exception ex) {
@@ -345,7 +352,8 @@ public class TestBlobStore {
         //return new CloudDir(this, vrl);
     }
 
-    private static void getOutPutStream() throws MalformedURLException, NoSuchAlgorithmException, KeyManagementException, IOException {
+    private static void getOutPutStream() throws MalformedURLException, NoSuchAlgorithmException,
+            KeyManagementException, IOException {
         final URL url = new URL(endpoint);
 
         // configure the SSLContext with a TrustManager
@@ -366,7 +374,6 @@ public class TestBlobStore {
         javax.net.ssl.SSLSocketFactory factory = ssl.getSocketFactory();
         authConnection.setSSLSocketFactory(factory);
         authConnection.setHostnameVerifier(new HostnameVerifier() {
-
             @Override
             public boolean verify(String hostname, SSLSession session) {
                 System.out.println("hostname: " + hostname);
@@ -398,7 +405,6 @@ public class TestBlobStore {
         storageConnection.addRequestProperty("Accept", "*/*");
         storageConnection.setSSLSocketFactory(factory);
         storageConnection.setHostnameVerifier(new HostnameVerifier() {
-
             @Override
             public boolean verify(String hostname, SSLSession session) {
                 System.out.println("hostname: " + hostname);
@@ -432,7 +438,7 @@ public class TestBlobStore {
         SSLContext.setDefault(ctx);
 
 
-        HttpsURLConnection authConnection = (HttpsURLConnection) url.openConnection();
+        sun.net.www.protocol.http.HttpURLConnection authConnection = (sun.net.www.protocol.http.HttpURLConnection) url.openConnection();
 
         authConnection.addRequestProperty("X-Storage-User", uname);
         authConnection.addRequestProperty("X-Storage-Pass", key);
@@ -440,15 +446,14 @@ public class TestBlobStore {
         SSLContext ssl = SSLContext.getInstance("TLSv1");
         ssl.init(null, new TrustManager[]{new SimpleX509TrustManager()}, null);
         javax.net.ssl.SSLSocketFactory factory = ssl.getSocketFactory();
-        authConnection.setSSLSocketFactory(factory);
-        authConnection.setHostnameVerifier(new HostnameVerifier() {
-
-            @Override
-            public boolean verify(String hostname, SSLSession session) {
-                System.out.println("hostname: " + hostname);
-                return true;
-            }
-        });
+//        authConnection.setSSLSocketFactory(factory);
+//        authConnection.setHostnameVerifier(new HostnameVerifier() {
+//            @Override
+//            public boolean verify(String hostname, SSLSession session) {
+//                System.out.println("hostname: " + hostname);
+//                return true;
+//            }
+//        });
 
 
         System.out.println("H0 " + authConnection.getHeaderField(0));
@@ -474,7 +479,6 @@ public class TestBlobStore {
 //        storageConnection.addRequestProperty("Accept", "*/*");
         storageConnection.setSSLSocketFactory(factory);
         storageConnection.setHostnameVerifier(new HostnameVerifier() {
-
             @Override
             public boolean verify(String hostname, SSLSession session) {
                 System.out.println("hostname: " + hostname);
@@ -515,12 +519,12 @@ public class TestBlobStore {
         String key = props.getProperty("jclouds.credential");
 
         HttpGet getMethod = new HttpGet(endpoint);
-        getMethod.getParams().setIntParameter("http.socket.timeout",  Constants.TIME_OUT);
+        getMethod.getParams().setIntParameter("http.socket.timeout", Constants.TIME_OUT);
         getMethod.setHeader("x-auth-user", uname);
         getMethod.setHeader("x-auth-key", key);
         BasicHttpParams params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params,  Constants.TIME_OUT);
-        params.setParameter("http.socket.timeout",  Constants.TIME_OUT);
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, Constants.TIME_OUT);
+        params.setParameter("http.socket.timeout", Constants.TIME_OUT);
 
         org.apache.http.client.HttpClient client = new DefaultHttpClient(params);
         org.apache.http.client.HttpClient wrapClient1 = wrapClient1(client);
@@ -695,24 +699,21 @@ public class TestBlobStore {
     }
 
     private static void put2() throws IOException, Exception {
-        RestContext<Object, Object> ctx = asyncBlobStore.getContext().getProviderSpecificContext();
-        URI ctxEndpoint = ctx.getEndpoint();
-        System.out.println("ctxEndpoint: " + ctxEndpoint);
-
-        Map<String, Credentials> cred = ctx.getCredentialStore();
-        Iterator<String> keysIter = cred.keySet().iterator();
-
-        while (keysIter.hasNext()) {
-            String key = keysIter.next();
-            System.out.println(key + " : " + cred.get(key));
-        }
-        System.out.println(ctx.getDescription());
-        System.out.println(ctx.getId());
-
-        System.out.println(ctx.getIdentity());
-
-
-
+//        RestContext<Object, Object> ctx = blobstore.getContext().getProviderSpecificContext();
+//        URI ctxEndpoint = ctx.getEndpoint();
+//        System.out.println("ctxEndpoint: " + ctxEndpoint);
+//        
+//        Map<String, Credentials> cred = ctx.getCredentialStore();
+//        Iterator<String> keysIter = cred.keySet().iterator();
+//        
+//        while (keysIter.hasNext()) {
+//            String key = keysIter.next();
+//            System.out.println(key + " : " + cred.get(key));
+//        }
+//        System.out.println(ctx.getDescription());
+//        System.out.println(ctx.getId());
+//        
+//        System.out.println(ctx.getIdentity());        
     }
 
     private static SSLSocketFactory getSSLSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
@@ -728,7 +729,6 @@ public class TestBlobStore {
     private static SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager tm = new X509TrustManager() {
-
             @Override
             public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
             }
@@ -751,6 +751,18 @@ public class TestBlobStore {
         return ctx.getSocketFactory();
 
 
+    }
+
+    private static void ls() throws InterruptedException, ExecutionException {
+        PageSet<? extends StorageMetadata> res = blobstore.list("/");
+        for (StorageMetadata sm : res) {
+            debug("list: " + sm.getName());
+        }
+
+        res = blobstore.list("lobcder");
+        for (StorageMetadata sm : res) {
+            debug("list: " + sm.getName());
+        }
     }
 
     static class SimpleX509TrustManager implements X509TrustManager {
