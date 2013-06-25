@@ -6,6 +6,8 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nl.uva.vlet.data.StringUtil;
 import nl.uva.vlet.exception.VRLSyntaxException;
 import nl.uva.vlet.exception.VlException;
@@ -16,6 +18,7 @@ import nl.uva.vlet.vfs.VFile;
 import nl.uva.vlet.vfs.VFileSystem;
 import nl.uva.vlet.vfs.cloud.Exceptions.CloudRequestTimeout;
 import nl.uva.vlet.vrl.VRL;
+import nl.uva.vlet.vrs.io.VRandomReadable;
 import org.jclouds.blobstore.domain.BlobMetadata;
 import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.blobstore.domain.StorageType;
@@ -25,7 +28,7 @@ import org.jclouds.blobstore.domain.StorageType;
  *
  * @author S. Koulouzis
  */
-public class CloudFile extends VFile implements VChecksum {
+public class CloudFile extends VFile implements VChecksum{//, VRandomReadable {
 
     private CloudFileSystem cvfs;
 
@@ -219,4 +222,13 @@ public class CloudFile extends VFile implements VChecksum {
             throw new VlIOException(ex);
         }
     }
+
+//    @Override
+//    public int readBytes(long fileOffset, byte[] bytes, int bufferOffset, int nrBytes) throws VlException, VRLSyntaxException {
+//        try {
+//            return  this.cvfs.readBytes( getVRL(), fileOffset, bytes, bufferOffset, nrBytes);
+//        } catch (IOException ex) {
+//            throw new nl.uva.vlet.exception.VlIOException(ex);
+//        }
+//    }
 }
