@@ -2,6 +2,9 @@ package nl.uva.vlet.vfs.cloud;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
@@ -21,6 +24,7 @@ import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.*;
 import org.jclouds.blobstore.domain.internal.StorageMetadataImpl;
+import org.jclouds.blobstore.options.GetOptions;
 import org.jclouds.blobstore.options.ListContainerOptions.Builder;
 import org.jclouds.blobstore.options.PutOptions;
 import org.jclouds.filesystem.reference.FilesystemConstants;
@@ -28,6 +32,8 @@ import org.jclouds.http.HttpResponseException;
 import org.jclouds.io.Payload;
 import org.jclouds.openstack.keystone.v2_0.config.CredentialTypes;
 import org.jclouds.openstack.keystone.v2_0.config.KeystoneProperties;
+
+import static org.jclouds.blobstore.options.GetOptions.Builder.range;
 
 /**
  *
@@ -237,17 +243,25 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public void connect() throws VlException {
-        BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
-        blobstore = blobStoreContext.getBlobStore();
         try {
-            blobstore.containerExists("");
+            URLConnection conn = new URL(endpoint).openConnection();
+            conn.connect();
+
+            BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
+            blobstore = blobStoreContext.getBlobStore();
+
+//            blobstore.containerExists("");
         } catch (Exception ex) {
             if (ex instanceof org.jclouds.rest.AuthorizationException) {
                 throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
             }
-            if (ex instanceof HttpResponseException && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")) {
+            if (ex instanceof HttpResponseException && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")
+                    || ex instanceof MalformedURLException
+                    || ex instanceof IOException
+                    || ex instanceof javax.net.ssl.SSLException) {
                 throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
             }
+        } finally {
         }
         //        blobstore.countBlobs("");
         //        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
@@ -257,8 +271,10 @@ public class CloudFileSystem extends FileSystemNode {
     @Override
     public void disconnect() throws VlException {
 //        getBlobStoreContext().close();
-        blobstore.getContext().close();
-        blobstore = null;
+        if (blobstore != null) {
+            blobstore.getContext().close();
+            blobstore = null;
+        }
         getCache().clear();
     }
 
@@ -631,9 +647,9 @@ public class CloudFileSystem extends FileSystemNode {
         } else {
             blob.setPayload(file);
             if (file.length() > (50 * 1024 * 1024)) {
-                blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+                blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
             } else {
-                blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+                blobstore.putBlob(containerAndPath[0], blob);
             }
         }
         if (transferInfo != null) {
@@ -739,5 +755,19 @@ public class CloudFileSystem extends FileSystemNode {
             }
             props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
         }
+    }
+
+    
+    
+    //It's not safe: Too many requests, and no grantees that the nrBytes will be read.
+    int readBytes(VRL vrl, long fileOffset, byte[] bytes, int bufferOffset, int nrBytes) throws VRLSyntaxException, IOException {
+        String[] containerAndPath = getContainerAndPath(vrl);
+        long end = fileOffset + nrBytes;
+        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1], range(fileOffset, end));
+        int numRead = blob.getPayload().getInput().read(bytes, bufferOffset, nrBytes);
+//        if (numRead != nrBytes) {
+//            debug("-----------------Asked: " + nrBytes + " got: " + numRead);
+//        }
+        return numRead;
     }
 }
