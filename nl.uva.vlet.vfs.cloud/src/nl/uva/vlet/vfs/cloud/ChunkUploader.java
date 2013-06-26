@@ -275,16 +275,16 @@ class ChunkUploader {
             } catch (IOException ex) {
                 try {
                     client.execute(put);
-                    Logger.getLogger(SwiftCloudOutputStream.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(ChunkUploader.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex1) {
-                    Logger.getLogger(SwiftCloudOutputStream.class.getName()).log(Level.SEVERE, null, ex1);
+                    Logger.getLogger(ChunkUploader.class.getName()).log(Level.SEVERE, null, ex1);
                 }
             } finally {
                 if (resp != null) {
                     try {
                         EntityUtils.consume(resp.getEntity());
                     } catch (IOException ex) {
-                        Logger.getLogger(SwiftCloudOutputStream.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(ChunkUploader.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
                 if (bufferFile != null) {

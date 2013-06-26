@@ -244,18 +244,19 @@ public class CloudFileSystem extends FileSystemNode {
     @Override
     public void connect() throws VlException {
         try {
-            URLConnection conn = new URL(endpoint).openConnection();
-            conn.connect();
+//            URLConnection conn = new URL(endpoint).openConnection();
+//            conn.connect();
 
             BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
             blobstore = blobStoreContext.getBlobStore();
 
-//            blobstore.containerExists("");
+            blobstore.containerExists("");
         } catch (Exception ex) {
             if (ex instanceof org.jclouds.rest.AuthorizationException) {
                 throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
             }
-            if (ex instanceof HttpResponseException && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")
+            if (ex instanceof HttpResponseException 
+                    && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")
                     || ex instanceof MalformedURLException
                     || ex instanceof IOException
                     || ex instanceof javax.net.ssl.SSLException) {
@@ -640,18 +641,18 @@ public class CloudFileSystem extends FileSystemNode {
             blob = blobstore.blobBuilder(containerAndPath[1]).build();
         }
         File file = new File(localSource.getVRL().toURI());
-        Long fileLimit = Long.valueOf("2147483648");
-        if (file.length() > fileLimit && vrl.getScheme().equals("swift") && swiftVersion == 1) {
-            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL), props.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY), endpoint);
-            uploader.upload();
-        } else {
+//        Long fileLimit = Long.valueOf("2147483648");
+//        if (file.length() > fileLimit && vrl.getScheme().equals("swift") && swiftVersion == 1) {
+//            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL), props.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY), endpoint);
+//            uploader.upload();
+//        } else {
             blob.setPayload(file);
             if (file.length() > (50 * 1024 * 1024)) {
                 blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
             } else {
                 blobstore.putBlob(containerAndPath[0], blob);
             }
-        }
+//        }
         if (transferInfo != null) {
             transferInfo.endTask("UploadToSwift");
         }
