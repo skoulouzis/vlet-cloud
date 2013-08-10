@@ -706,7 +706,7 @@ public class CloudFileSystem extends FileSystemNode {
             ServerInfo[] moreInfo = context.getServerInfoRegistry().getServerInfosFor(serverVRL);
             for (ServerInfo i : moreInfo) {
                 username = i.getUsername();
-                if (!StringUtil.isEmpty(username)) {
+                if (!StringUtil.isEmpty(username) && username.contains(":")) {
                     break;
                 }
             }

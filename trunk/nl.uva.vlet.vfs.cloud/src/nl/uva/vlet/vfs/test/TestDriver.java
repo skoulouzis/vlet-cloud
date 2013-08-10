@@ -34,8 +34,8 @@ public class TestDriver {
 
     public static void main(String args[]) {
         try {
-//            test1();
-            test2();
+            test1();
+//            test2();
 
         } catch (Exception ex) {
             Logger.getLogger(TestDriver.class.getName()).log(Level.SEVERE,
@@ -76,7 +76,8 @@ public class TestDriver {
         VFSClient vfsClient = new VFSClient();
         VRSContext context = vfsClient.getVRSContext();
 
-        VRL vrl = new VRL("swift://149.156.10.131:8443/auth/v1.0/");
+//        VRL vrl = new VRL("swift://149.156.10.131:8443/auth/v1.0/");
+        VRL vrl = new VRL("swift://10.100.0.24:5000/v2.0/LOBCDER-REPLICA-vTEST/ca1be965-37a1-4c87-8f99-7f4033d8e852-Tx.out");
         ServerInfo info = context.getServerInfoFor(vrl, true);
 
         Properties prop = getCloudProperties();
@@ -103,8 +104,12 @@ public class TestDriver {
             VFSNode[] children = dir.list();
             for (VFSNode n : children) {
                 System.out.println("List: " + n.getVRL());
+                System.out.println("getModificationTime: " + n.getModificationTime());
+                System.out.println("getMimeType: " + n.getMimeType());
+                System.out.println("getType: " + n.getType());
             }
         }
+                
 
         // VRSFactory rf = context.getResourceFactoryFor(new
         // VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS"));
