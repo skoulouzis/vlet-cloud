@@ -77,7 +77,7 @@ public class TestDriver {
         VRSContext context = vfsClient.getVRSContext();
 
 //        VRL vrl = new VRL("swift://149.156.10.131:8443/auth/v1.0/");
-        VRL vrl = new VRL("swift://10.100.0.24:5000/v2.0/LOBCDER-REPLICA-vTEST/ca1be965-37a1-4c87-8f99-7f4033d8e852-Tx.out");
+        VRL vrl = new VRL("swift://10.100.0.24:5000/v2.0/LOBCDER-REPLICA-vTEST/636f76bd-284d-4ae2-9c97-a03590ad067f-tumour_surf_1200h.obj");
         ServerInfo info = context.getServerInfoFor(vrl, true);
 
         Properties prop = getCloudProperties();
