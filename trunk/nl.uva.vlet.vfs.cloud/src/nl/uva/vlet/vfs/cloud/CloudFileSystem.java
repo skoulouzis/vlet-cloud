@@ -7,6 +7,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -205,6 +206,17 @@ public class CloudFileSystem extends FileSystemNode {
                 if (blobstore == null) {
                     connect();
                 }
+
+//                System.err.println("container: '" + container + "' restOfThePath: '" + restOfThePath + "'");
+//                boolean exists = blobstore.containerExists(container);
+//                exists = blobstore.blobExists(container, restOfThePath);
+
+//                PageSet<? extends StorageMetadata> list = blobstore.list(container);
+//                Iterator<? extends StorageMetadata> it = list.iterator();
+//                while(it.hasNext()){
+//                    System.err.println(it.next().getName());
+//                }
+
                 meta = blobstore.blobMetadata(
                         container, restOfThePath);
             }
@@ -223,10 +235,15 @@ public class CloudFileSystem extends FileSystemNode {
         String[] pathElements = new VRL(cleanPath).getPathElements();
         String container = pathElements[0];
         // logger.debugPrintf("container: %s\n", container);
-        String restOfThePath = null;
+        String restOfThePath = "";
         if (pathElements.length > 1) {
-            restOfThePath = cleanPath.toString().substring(
-                    container.length() + 2);
+//            restOfThePath = cleanPath.toString().substring(
+//                    container.length() + 2);
+            for (int i = 1; i < pathElements.length; i++) {
+                restOfThePath += pathElements[i];
+            }
+        }else{
+            restOfThePath = null;
         }
 
         return new String[]{container, restOfThePath};
@@ -255,7 +272,7 @@ public class CloudFileSystem extends FileSystemNode {
             if (ex instanceof org.jclouds.rest.AuthorizationException) {
                 throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
             }
-            if (ex instanceof HttpResponseException 
+            if (ex instanceof HttpResponseException
                     && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")
                     || ex instanceof MalformedURLException
                     || ex instanceof IOException
@@ -646,12 +663,12 @@ public class CloudFileSystem extends FileSystemNode {
 //            ChunkUploader uploader = new ChunkUploader(file, containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL), props.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY), endpoint);
 //            uploader.upload();
 //        } else {
-            blob.setPayload(file);
-            if (file.length() > (50 * 1024 * 1024)) {
-                blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
-            } else {
-                blobstore.putBlob(containerAndPath[0], blob);
-            }
+        blob.setPayload(file);
+        if (file.length() > (50 * 1024 * 1024)) {
+            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+        } else {
+            blobstore.putBlob(containerAndPath[0], blob);
+        }
 //        }
         if (transferInfo != null) {
             transferInfo.endTask("UploadToSwift");
@@ -758,8 +775,6 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
 
-    
-    
     //It's not safe: Too many requests, and no grantees that the nrBytes will be read.
     int readBytes(VRL vrl, long fileOffset, byte[] bytes, int bufferOffset, int nrBytes) throws VRLSyntaxException, IOException {
         String[] containerAndPath = getContainerAndPath(vrl);
