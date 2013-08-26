@@ -76,7 +76,8 @@ public class TestBlobStore {
     public static void main(String args[]) {
         try {
             setup();
-            ls();
+//            ls();
+            getMeta("LOBCDER-REPLICA-vTEST", "14c21f03-c98b-4630-b602-15ff73a692b6-31f43ed.jpg");
 //            testToch();
 //            touch(true);
 //            mkdir(true);
@@ -763,6 +764,24 @@ public class TestBlobStore {
         for (StorageMetadata sm : res) {
             debug("list: " + sm.getName());
         }
+    }
+
+    private static void getMeta(String container, String restOfThePath) throws IOException {
+        BlobMetadata meta = blobstore.blobMetadata(
+                container, restOfThePath);
+
+        debug("meta: " + meta.getContainer());
+        debug("meta: " + meta.getETag());
+        debug("meta: " + meta.getName());
+        Blob blob = blobstore.getBlob(container, restOfThePath);
+        
+        InputStream in = blob.getPayload().getInput();
+        byte[] b = new byte[1024];
+        while((in.read(b)!=-1)){
+            System.err.println("data");
+        }
+
+        in.close();
     }
 
     static class SimpleX509TrustManager implements X509TrustManager {
