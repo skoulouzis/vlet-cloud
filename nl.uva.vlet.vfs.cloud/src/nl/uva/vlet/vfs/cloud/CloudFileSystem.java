@@ -664,7 +664,7 @@ public class CloudFileSystem extends FileSystemNode {
 //            uploader.upload();
 //        } else {
         blob.setPayload(file);
-        if (file.length() > (50 * 1024 * 1024)) {
+        if (file.length() > (200 * 1024 * 1024)) {
             blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
         } else {
             blobstore.putBlob(containerAndPath[0], blob);
