@@ -55,7 +55,7 @@ class ChunkUploader {
     private int maxThreads;
     private ThreadPoolExecutor executorService;
     private int counter = 0;
-    private long chunkSize = Long.valueOf("524288000");//500MB //Long.valueOf("1073741824");//1GB
+    private long chunkSize = Long.valueOf(1024*1024);//500MB //Long.valueOf("1073741824");//1GB
     private int chunkFileNum;
     private final String endpoint;
     private final String username;
