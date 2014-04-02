@@ -3,6 +3,8 @@ package nl.uva.vlet.vfs.cloud;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
 import java.net.MalformedURLException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
@@ -62,14 +64,18 @@ public class CloudFileSystem extends FileSystemNode {
     }
 //    private AsyncBlobStore blobstore;
 //    private boolean useCache = true;
-    private boolean debug = true;
+//    private boolean debug = true;
 //    private static int bufferSize = -1;
 
     public CloudFileSystem(VRSContext context, ServerInfo info)
             throws VlInitializationException, VlPasswordException, VRLSyntaxException, VlIOException, VlException {
         super(context, info);
 
-        init(info, context, "https");
+        if (info.getServerVRL().getScheme().endsWith("ssl")) {
+            init(info, context, "https");
+        } else {
+            init(info, context, "http");
+        }
         try {
             connect();
         } catch (Exception ex) {
@@ -227,22 +233,36 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private String[] getContainerAndPath(VRL path) throws VRLSyntaxException {
-        String cleanPath = removePrefix(path.getPath());
-        String[] pathElements = new VRL(cleanPath).getPathElements();
-        String container = pathElements[0];
-        // logger.debugPrintf("container: %s\n", container);
-        String restOfThePath = "";
-        if (pathElements.length > 1) {
-//            restOfThePath = cleanPath.toString().substring(
-//                    container.length() + 2);
-            for (int i = 1; i < pathElements.length; i++) {
-                restOfThePath += pathElements[i];
+        try {
+            String cleanPath = removePrefix(path.getPath());
+            String[] pathElements = new VRL(cleanPath).getPathElements();
+            String container = URLEncoder.encode(pathElements[0], "UTF-8").replace("+", "%20");
+//            String container = pathElements[0];
+            // logger.debugPrintf("container: %s\n", container);
+            String restOfThePath = "";
+            if (pathElements.length > 1) {
+                //            restOfThePath = cleanPath.toString().substring(
+                //                    container.length() + 2);
+                for (int i = 1; i < pathElements.length; i++) {
+                    if (i > 1) {
+                        restOfThePath += "/" + URLEncoder.encode(pathElements[i], "UTF-8").replace("+", "%20");
+                    } else {
+                        restOfThePath += URLEncoder.encode(pathElements[i], "UTF-8").replace("+", "%20");
+                    }
+//                    if (i > 1) {
+//                        restOfThePath += "/" + pathElements[i];
+//                    } else {
+//                        restOfThePath += pathElements[i];
+//                    }
+                }
+            } else {
+                restOfThePath = null;
             }
-        }else{
-            restOfThePath = null;
-        }
 
-        return new String[]{container, restOfThePath};
+            return new String[]{container, restOfThePath};
+        } catch (UnsupportedEncodingException ex) {
+            throw new nl.uva.vlet.exception.VRLSyntaxException(ex);
+        }
     }
 
     @Override
@@ -275,8 +295,10 @@ public class CloudFileSystem extends FileSystemNode {
                     || ex instanceof javax.net.ssl.SSLException) {
                 throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
             }
-        } finally {
+            throw new nl.uva.vlet.exception.VlException(ex);
         }
+//        finally {
+//        }
         //        blobstore.countBlobs("");
         //        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
         //        this.blobstore = blobStoreContext.getAsyncBlobStore();
@@ -368,7 +390,6 @@ public class CloudFileSystem extends FileSystemNode {
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
                 if (blobstore == null) {
-                    debug("blobstore == null");
                     this.connect();
                 }
                 exists = blobstore.containerExists(containerAndPath[0]);
@@ -521,7 +542,7 @@ public class CloudFileSystem extends FileSystemNode {
         boolean created = false;
         String[] containerAndPath = getContainerAndPath(vrl);
         //Exists ?
-        ListenableFuture<BlobMetadata> blobMeta = null;
+//        ListenableFuture<BlobMetadata> blobMeta = null;
         BlobMetadata meta = null;
         try {
             meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
@@ -554,15 +575,14 @@ public class CloudFileSystem extends FileSystemNode {
         return created;
     }
 
-    private void debug(String msg) {
-        if (debug) {
-            System.err.println(this.getClass().getName() + ": " + msg);
-        }
-//        System.out.println(this.getClass().getName() + ": " + msg);
-//        logger.debugPrintf(msg + "\n");
-//        Global.debugPrintf(this, msg + "\n");
-    }
-
+//    private void debug(String msg) {
+//        if (debug) {
+//            System.err.println(this.getClass().getName() + ": " + msg);
+//        }
+////        System.out.println(this.getClass().getName() + ": " + msg);
+////        logger.debugPrintf(msg + "\n");
+////        Global.debugPrintf(this, msg + "\n");
+//    }
     private boolean createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, CloudRequestTimeout {
         Boolean containerExists = blobstore.containerExists(container);
         if (containerExists && !ignoreExisting) {
@@ -747,7 +767,6 @@ public class CloudFileSystem extends FileSystemNode {
                 }
             }
             if (StringUtil.isEmpty(passwd)) {
-                debug("password is empty!!!");
                 throw new nl.uva.vlet.exception.VlPasswordException(
                         "Cloud service credential (password) is null");
             }
