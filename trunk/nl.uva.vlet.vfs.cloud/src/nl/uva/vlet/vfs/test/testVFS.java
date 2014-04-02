@@ -72,6 +72,7 @@ import nl.uva.vlet.vfs.VLogicalFileAlias;
 import nl.uva.vlet.vfs.VReplicatable;
 import nl.uva.vlet.vfs.VThirdPartyTransferable;
 import nl.uva.vlet.vfs.VUnixFileAttributes;
+import nl.uva.vlet.vfs.cloud.CloudFile;
 import nl.uva.vlet.vrl.VRL;
 import nl.uva.vlet.vrs.ServerInfo;
 import nl.uva.vlet.vrs.VCommentable;
@@ -527,6 +528,29 @@ public class testVFS extends VTestCase {
                 + getRemoteTestDir(), names.length <= 0);
 
         newFile.delete();
+    }
+
+    public void testCreateDeleteFolderWithSpaceAndListParentDir()
+            throws VlException {
+        if (this.getTestEncodedPaths() == false) {
+            message("***Warning: Skipping test:testCreateDeleteFileWithSpaceAndListParentDir");
+            return;
+        }
+        VDir newFolder = getRemoteTestDir().createDir(nextFilename("test Folder E"));
+
+        verbose(1, "remote filename with space=" + newFolder);
+
+        VFSNode[] names = getRemoteTestDir().list();
+
+        Assert.assertNotNull(
+                "Remote directory contents is NULL after creation of file in:"
+                + getRemoteTestDir(), names);
+
+        Assert.assertFalse(
+                "Remote directory contents is empty after creation of file in:"
+                + getRemoteTestDir(), names.length <= 0);
+
+        newFolder.delete();
     }
 
     public void testCreateAndIgnoreExistingFile() throws VlException {
@@ -2989,6 +3013,48 @@ public class testVFS extends VTestCase {
         newFile.delete();
     }
 
+    public void testUpDownloadLargeFile2() throws VlException, IOException {
+
+        VFile localFile = localTempDir.createFile("tesLargeFile2");
+        byte[] randomData = new byte[1024 * 1024];//1MB
+        Random r = new Random();
+        OutputStream lfos = localFile.getOutputStream();
+        int count = 800;
+        for (int i = 0; i < count; i++) {
+            r.nextBytes(randomData);
+            lfos.write(randomData);
+        }
+
+        lfos.flush();
+        lfos.close();
+
+
+
+        VFile remoteFile = getRemoteTestDir().createFile("tesLargeFile2");
+
+
+        long startTime = System.currentTimeMillis();
+        if (remoteFile instanceof CloudFile) {
+            ((CloudFile) remoteFile).uploadFrom(localFile);
+        } else {
+            localFile.copyTo(remoteFile);
+        }
+        long totalTime = System.currentTimeMillis() - startTime;
+
+        long len = remoteFile.getLength();
+        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0*1024.0) + " GB");
+        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                + "KB/s");
+
+
+        long expectedLen = randomData.length * count;
+        assertEquals(expectedLen, len);
+        remoteFile.delete();
+        localFile.delete();
+
+    }
+
     public void testUpDownloadLargeFile() throws VlException, IOException {
 
         VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
@@ -3010,6 +3076,7 @@ public class testVFS extends VTestCase {
 
 
         long len = newFile.getLength();
+        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0) + " MB");
         double up_speed = (len / 1024.0) / (totalTime / 1000.0);
         verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
                 + "KB/s");

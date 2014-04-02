@@ -4,7 +4,11 @@
  */
 package nl.uva.vlet.vfs.test;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import static com.google.common.collect.Iterables.contains;
+import com.google.common.collect.Maps;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
@@ -26,10 +30,8 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
-import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.Blob;
 import org.jclouds.blobstore.domain.BlobMetadata;
@@ -42,25 +44,23 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 import javax.net.ssl.*;
 import nl.uva.vlet.vfs.cloud.Constants;
 import org.apache.http.StatusLine;
 import org.apache.http.entity.ByteArrayEntity;
-import org.jclouds.Context;
 import org.jclouds.ContextBuilder;
+import org.jclouds.apis.ApiMetadata;
+import org.jclouds.apis.Apis;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.domain.PageSet;
 import org.jclouds.blobstore.domain.StorageMetadata;
-import org.jclouds.domain.Credentials;
-import org.jclouds.http.HttpRequest;
 import org.jclouds.openstack.keystone.v2_0.config.CredentialTypes;
 import org.jclouds.openstack.keystone.v2_0.config.KeystoneProperties;
-import org.jclouds.rest.HttpAsyncClient;
-import org.jclouds.rest.HttpClient;
-import org.jclouds.rest.RestContext;
+import org.jclouds.providers.ProviderMetadata;
+import org.jclouds.providers.Providers;
 
 /**
  *
@@ -72,12 +72,17 @@ public class TestBlobStore {
     private static String endpoint;
     private static Properties props;
     private static BlobStore blobstore;
+    public static final Map<String, ApiMetadata> allApis = Maps.uniqueIndex(Apis.viewableAs(BlobStoreContext.class),
+            Apis.idFunction());
+    public static final Map<String, ProviderMetadata> appProviders = Maps.uniqueIndex(Providers.viewableAs(BlobStoreContext.class),
+            Providers.idFunction());
+    public static final Set<String> allKeys = ImmutableSet.copyOf(Iterables.concat(appProviders.keySet(), allApis.keySet()));
 
     public static void main(String args[]) {
         try {
             setup();
-//            ls();
-            getMeta("LOBCDER-REPLICA-vTEST", "14c21f03-c98b-4630-b602-15ff73a692b6-31f43ed.jpg");
+            ls();
+//            getMeta("LOBCDER-REPLICA-vTEST", "14c21f03-c98b-4630-b602-15ff73a692b6-31f43ed.jpg");
 //            testToch();
 //            touch(true);
 //            mkdir(true);
@@ -93,7 +98,9 @@ public class TestBlobStore {
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
-            blobstore.getContext().close();
+            if (blobstore != null) {
+                blobstore.getContext().close();
+            }
         }
 
     }
@@ -244,7 +251,7 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        endpoint = "http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
+        endpoint = "http://10.0.3.208:8080/auth/v1.0/";//"http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
         String provider = "swift";//"swift"; // "in-memory" "filesystem";//
         String version = "v2.0";
         if (endpoint.endsWith("/")) {
@@ -276,7 +283,6 @@ public class TestBlobStore {
         File localStorage = new File(path);
         if (!localStorage.exists()) {
             localStorage.mkdirs();
-
         }
         props.setProperty(FilesystemConstants.PROPERTY_BASEDIR, path);
         //        BlobStoreContext blobStoreContext = new BlobStoreContextFactory().createContext(provider, props);
@@ -758,11 +764,10 @@ public class TestBlobStore {
         PageSet<? extends StorageMetadata> res = blobstore.list("/");
         for (StorageMetadata sm : res) {
             debug("list: " + sm.getName());
-        }
-
-        res = blobstore.list("lobcder");
-        for (StorageMetadata sm : res) {
-            debug("list: " + sm.getName());
+            PageSet<? extends StorageMetadata> files = blobstore.list(sm.getName());
+            for (StorageMetadata f : files) {
+                debug("list: " + f.getName());
+            }
         }
     }
 
@@ -774,10 +779,10 @@ public class TestBlobStore {
         debug("meta: " + meta.getETag());
         debug("meta: " + meta.getName());
         Blob blob = blobstore.getBlob(container, restOfThePath);
-        
+
         InputStream in = blob.getPayload().getInput();
         byte[] b = new byte[1024];
-        while((in.read(b)!=-1)){
+        while ((in.read(b) != -1)) {
             System.err.println("data");
         }
 

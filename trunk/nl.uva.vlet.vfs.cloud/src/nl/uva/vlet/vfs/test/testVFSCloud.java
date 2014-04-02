@@ -39,7 +39,7 @@ import nl.uva.vlet.vrs.VRS;
 import nl.uva.vlet.vrs.VRSContext;
 
 /**
- * 
+ *
  * @author S. Koulouzis
  */
 public class testVFSCloud extends testVFS {
@@ -49,8 +49,10 @@ public class testVFSCloud extends testVFS {
     static {
         try {
 //            testLoc = new VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
-            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
-            
+//            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
+            testLoc = new VRL(
+                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
+
 //            testLoc = new VRL("sftp://skoulouz@elab.lab.uvalight.net/home/skoulouz/tmp/testBlobStoreVFS");
 //            testLoc = new VRL(
 //                    "filesystem:/testBlobStoreVFS");
@@ -80,9 +82,9 @@ public class testVFSCloud extends testVFS {
         Properties prop = getCloudProperties();
 
         info.setUsername(prop.getProperty(org.jclouds.Constants.PROPERTY_IDENTITY));
-        
+
         info.setPassword(prop.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
-        
+
         info.store();
 
         return new TestSuite(testVFSCloud.class);

@@ -1,7 +1,6 @@
 package nl.uva.vlet.vfs.test;
 
 import java.io.*;
-import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -58,7 +57,6 @@ import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.util.EntityUtils;
 import org.jclouds.blobstore.domain.StorageType;
-import org.jclouds.rest.RestContext;
 
 public class TestCloudFS {
 
@@ -75,8 +73,12 @@ public class TestCloudFS {
 //            testLoc = new VRL(
 //                    "swift://149.156.10.131:8443/auth/v1.0/TEST_VRS_LOC");
 
+//            testLoc = new VRL(
+//                    "swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
+
+
             testLoc = new VRL(
-                    "swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
+                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
 
 
 //            testLoc = new VRL(
@@ -99,7 +101,7 @@ public class TestCloudFS {
         try {
             setUp();
 
-            // testOpenLocation();
+            testOpenLocation();
             // testNewNode();
             // testOpenNode();
             // testGetNrOfNodes();
@@ -141,12 +143,13 @@ public class TestCloudFS {
 
 //            testSwiftCloudOutputStream();
 
-            testMove10MBForthAndBack();
+//            testMove10MBForthAndBack();
 
 //            testGetInputStream();
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
+            System.err.println(e.getMessage());
             e.printStackTrace();
         } finally {
             VRS.exit();
@@ -365,8 +368,8 @@ public class TestCloudFS {
         info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
 
 
-        uname = getCloudProperties().getProperty("jclouds.identity");
-        key = getCloudProperties().getProperty("jclouds.credential");
+        uname = getCloudProperties().getProperty(org.jclouds.Constants.PROPERTY_IDENTITY);
+        key = getCloudProperties().getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL);
 
 
         info.setUsername(uname);
@@ -839,13 +842,13 @@ public class TestCloudFS {
 
     private static void testGetInputStream() throws IOException {
         BasicHttpParams params = new BasicHttpParams();
-        org.apache.http.params.HttpConnectionParams.setSoTimeout(params,  Constants.TIME_OUT);
-        params.setParameter("http.socket.timeout",  Constants.TIME_OUT);
+        org.apache.http.params.HttpConnectionParams.setSoTimeout(params, Constants.TIME_OUT);
+        params.setParameter("http.socket.timeout", Constants.TIME_OUT);
 
 
 
         HttpGet getMethod = new HttpGet("https://149.156.10.131:8443/auth/v1.0/");
-        getMethod.getParams().setIntParameter("http.socket.timeout",  Constants.TIME_OUT);
+        getMethod.getParams().setIntParameter("http.socket.timeout", Constants.TIME_OUT);
         getMethod.setHeader("x-auth-user", uname);
         getMethod.setHeader("x-auth-key", key);
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager();
@@ -860,19 +863,19 @@ public class TestCloudFS {
         Header storageURLHeader = resp.getFirstHeader("X-Storage-Url");
         Header authToken = resp.getFirstHeader("X-Auth-Token");
 
-        
-        getMethod = new HttpGet(storageURLHeader.getValue()+"/a4958c90-e0bb-4b0e-be3b-517c6e2c1629-testLargeUpload");
-        getMethod.getParams().setIntParameter("http.socket.timeout",  Constants.TIME_OUT);
+
+        getMethod = new HttpGet(storageURLHeader.getValue() + "/a4958c90-e0bb-4b0e-be3b-517c6e2c1629-testLargeUpload");
+        getMethod.getParams().setIntParameter("http.socket.timeout", Constants.TIME_OUT);
         getMethod.setHeader(authToken);
         getMethod.setHeader(authToken);
         resp = wrapClient1.execute(getMethod);
         Header[] headers = resp.getAllHeaders();
-        for(int i=0;i<headers.length;i++){
-            System.out.println(headers[i].getName() + " : "+headers[i].getValue());
+        for (int i = 0; i < headers.length; i++) {
+            System.out.println(headers[i].getName() + " : " + headers[i].getValue());
         }
-        
+
         EntityUtils.consume(resp.getEntity());
-        
+
         wrapClient1.getConnectionManager().closeExpiredConnections();
     }
 
@@ -899,7 +902,6 @@ public class TestCloudFS {
     private static SSLContext getSSLContext() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager tm = new X509TrustManager() {
-
             @Override
             public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
             }

@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.uva.vlet</groupId>
     <artifactId>vlet-vfs.cloud</artifactId>
-    <version>2.0</version>
+    <version>2.1</version>
     <build>
         <sourceDirectory>src</sourceDirectory>
         <plugins>
@@ -14,7 +14,7 @@
                     <source>1.6</source>
                     <target>1.6</target>
                 </configuration>
-                <version>2.4</version>
+                <version>2.5</version>
             </plugin> 
             
             <plugin>
@@ -35,11 +35,23 @@
     
     <dependencies>
         
+        <!--        <dependency>
+        <groupId>org.apache.jclouds</groupId>
+        <artifactId>jclouds-all</artifactId>
+        <version>1.7.1</version>
+    </dependency>
+        --> 
         <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-allblobstore</artifactId>
-            <version>1.6.0</version>
+            <groupId>org.apache.jclouds</groupId>
+            <artifactId>jclouds-blobstore</artifactId>
+            <version>1.7.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds</groupId>
+            <artifactId>jclouds-allblobstore</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+
          
         <dependency>
             <groupId>junit</groupId>
@@ -176,12 +188,12 @@
         </dependency>
         
         
-        <dependency>
+<!--        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>14.0</version>
         </dependency>
-            
+            -->
             
     </dependencies>
 
@@ -194,11 +206,19 @@
             <name>elab.lab.uvalight.net-releases</name>
             <url>http://elab.lab.uvalight.net/artifactory/repo</url>
         </repository>
+        
+        <!--        <repository>
+            <id>jclouds-snapshots</id>
+            <url>https://repository.apache.org/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>-->
     </repositories>
     
     
     
-    <distributionManagement>
+    <!--    <distributionManagement>
         <repository>
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-releases</name>
@@ -209,5 +229,5 @@
             <name>elab.lab.uvalight.net-snapshots</name>
             <url>http://elab.lab.uvalight.net/artifactory/local</url>
         </snapshotRepository>
-    </distributionManagement>
+    </distributionManagement>-->
 </project>
