@@ -251,8 +251,8 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        endpoint = "http://10.0.3.208:8080/auth/v1.0/";//"http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
-        String provider = "swift";//"swift"; // "in-memory" "filesystem";//
+        endpoint = "";//"http://10.0.3.208:8080/auth/v1.0/";//"http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
+        String provider = "aws-s3";//"swift";//"swift"; // "in-memory" "filesystem";//
         String version = "v2.0";
         if (endpoint.endsWith("/")) {
             version = "v2.0/";
@@ -761,7 +761,8 @@ public class TestBlobStore {
     }
 
     private static void ls() throws InterruptedException, ExecutionException {
-        PageSet<? extends StorageMetadata> res = blobstore.list("/");
+        PageSet<? extends StorageMetadata> res =  blobstore.list();//blobstore.list("/");
+       
         for (StorageMetadata sm : res) {
             debug("list: " + sm.getName());
             PageSet<? extends StorageMetadata> files = blobstore.list(sm.getName());

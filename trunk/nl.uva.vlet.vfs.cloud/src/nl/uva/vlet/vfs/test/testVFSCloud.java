@@ -50,8 +50,11 @@ public class testVFSCloud extends testVFS {
         try {
 //            testLoc = new VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
 //            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
-            testLoc = new VRL(
-                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
+//            testLoc = new VRL(
+//                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
+             testLoc = new VRL(
+                    "swift://10.0.3.25:8080/auth/v1.0/testBlobStoreVFS");
+            
 
 //            testLoc = new VRL("sftp://skoulouz@elab.lab.uvalight.net/home/skoulouz/tmp/testBlobStoreVFS");
 //            testLoc = new VRL(
