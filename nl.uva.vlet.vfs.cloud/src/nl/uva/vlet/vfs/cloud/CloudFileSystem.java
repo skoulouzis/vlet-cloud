@@ -681,7 +681,7 @@ public class CloudFileSystem extends FileSystemNode {
 //        } else {
         blob.setPayload(file);
         if (file.length() > (200 * 1024 * 1024)) {
-            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
+            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
         } else {
             blobstore.putBlob(containerAndPath[0], blob);
         }
@@ -701,6 +701,10 @@ public class CloudFileSystem extends FileSystemNode {
 //        }
         doChunkUpload = (Boolean) getContext().getProperty("chunk.upload");
         props = new Properties();
+
+        props.setProperty("jclouds.mpu.parallel.degree", "5");
+// This property controls the size (in bytes) of parts being uploaded in parallel, the default is 33554432 bytes = 32 MB
+        props.setProperty("jclouds.mpu.parts.size", "67108864"); // 64 MB
 
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
