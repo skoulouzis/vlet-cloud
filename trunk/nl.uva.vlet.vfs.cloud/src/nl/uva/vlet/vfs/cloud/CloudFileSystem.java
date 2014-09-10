@@ -681,6 +681,13 @@ public class CloudFileSystem extends FileSystemNode {
 //        } else {
         blob.setPayload(file);
         if (file.length() > (200 * 1024 * 1024)) {
+            if (file.length() > (288 * 1024 * 1024)) {
+                long firstDigit = Long.parseLong(Long.toString(file.length()).substring(0, 1));
+                firstDigit++;
+                props.setProperty("jclouds.mpu.parts.size", firstDigit + "3554431");
+                BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
+                blobstore = blobStoreContext.getBlobStore();
+            }
             blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
         } else {
             blobstore.putBlob(containerAndPath[0], blob);
@@ -704,7 +711,7 @@ public class CloudFileSystem extends FileSystemNode {
 
         props.setProperty("jclouds.mpu.parallel.degree", "5");
 // This property controls the size (in bytes) of parts being uploaded in parallel, the default is 33554432 bytes = 32 MB
-        props.setProperty("jclouds.mpu.parts.size", "67108864"); // 64 MB
+//        props.setProperty("jclouds.mpu.parts.size", "43554431"); // 64 MB
 
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
