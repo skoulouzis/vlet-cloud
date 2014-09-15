@@ -3,7 +3,6 @@ package nl.uva.vlet.vfs.cloud;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -722,24 +721,33 @@ public class CloudFileSystem extends FileSystemNode {
             //get rid of all paths 
             VRL tmp = serverVRL.copyWithNewPath("");
             VRL tmp2 = tmp.appendPath(serverVRL.getPathElements()[0]);
-            VRL newServerVRL;
+            VRL newServerVRL = null;
             if (serverVRL.getPathElements()[0].equals("auth")) {
                 newServerVRL = tmp2.appendPath(serverVRL.getPathElements()[1]);
-            } else {
+            } else if (!provider.equals("aws-s3")) {
                 provider = "swift-keystone";
                 props.setProperty(KeystoneProperties.CREDENTIAL_TYPE, CredentialTypes.PASSWORD_CREDENTIALS);
                 props.setProperty(org.jclouds.Constants.PROPERTY_API_VERSION, "2");
                 newServerVRL = tmp2;
                 swiftVersion = 2;
             }
+            //            debug("Endpoint: " + endpoint);
 
-            endpoint = newServerVRL.copyWithNewScheme(authServiceSchema).toString();
-//            debug("Endpoint: " + endpoint);
 
-            if (StringUtil.isEmpty(endpoint)) {
+
+            if (!provider.equals("aws-s3")) {
+                endpoint = newServerVRL.copyWithNewScheme(authServiceSchema).toString();
+            } else if (provider.equals("aws-s3")) {
+                endpoint = "";
+                newServerVRL = tmp2;
+            }
+
+
+            if (StringUtil.isEmpty(endpoint) && !provider.equals("aws-s3")) {
                 throw new nl.uva.vlet.exception.VlInitializationException(
                         "Cloud service endpoint is null");
             }
+
 
             props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
             info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
