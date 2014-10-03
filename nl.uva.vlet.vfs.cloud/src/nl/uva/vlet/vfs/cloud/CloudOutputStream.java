@@ -13,6 +13,9 @@ import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.domain.Blob;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import java.math.BigInteger;
+import org.jclouds.ContextBuilder;
+import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
@@ -30,7 +33,7 @@ public class CloudOutputStream extends OutputStream {
         logger = ClassLogger.getLogger(CloudOutputStream.class);
         logger.setLevelToDebug();
     }
-    private final BlobStore blobStore;
+    private BlobStore blobStore;
 
 //    public CloudOutputStream(String container, String blobName,
 //            String provider, Properties props) throws IOException {
@@ -68,8 +71,22 @@ public class CloudOutputStream extends OutputStream {
             }
 
             blob.setPayload(bufferFile);
-            if (bufferFile.length() > (800 * 1024 * 1024)) {
-                blobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
+            long large4G = Long.valueOf("4000000000");
+//            BigInteger large4G = new BigInteger("4000000000");
+//            BigInteger fileSize = BigInteger.valueOf(Long.valueOf(bufferFile.length()).intValue());
+//            int co = large4G.compareTo(fileSize);
+            if (bufferFile.length() > large4G) {
+//            if (bufferFile.length() > (288 * 1024 * 1024)) {
+                long firstDigit = Long.parseLong(Long.toString(bufferFile.length()).substring(0, 1));
+                firstDigit++;
+                props.setProperty("jclouds.mpu.parts.size", firstDigit + "3554431");
+                BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
+                blobStore = blobStoreContext.getBlobStore();
+//            }
+//            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
+
+//            if (bufferFile.length() > (800 * 1024 * 1024)) {
+//                blobStore.getContext().getBlobStore().putBlob(container, blob, PutOptions.Builder.multipart());
             } else {
                 blobStore.getContext().getBlobStore().putBlob(container, blob);
             }
