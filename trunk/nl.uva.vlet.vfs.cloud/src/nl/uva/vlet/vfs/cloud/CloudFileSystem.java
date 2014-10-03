@@ -2,6 +2,7 @@ package nl.uva.vlet.vfs.cloud;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -679,15 +680,19 @@ public class CloudFileSystem extends FileSystemNode {
 //            uploader.upload();
 //        } else {
         blob.setPayload(file);
-        if (file.length() > (200 * 1024 * 1024)) {
-            if (file.length() > (288 * 1024 * 1024)) {
-                long firstDigit = Long.parseLong(Long.toString(file.length()).substring(0, 1));
-                firstDigit++;
-                props.setProperty("jclouds.mpu.parts.size", firstDigit + "3554431");
-                BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
-                blobstore = blobStoreContext.getBlobStore();
-            }
-            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
+//        BigInteger large4G = new BigInteger("4000000000");
+        long large4G = Long.valueOf("4000000000");
+//        BigInteger fileSize = BigInteger.valueOf(Long.valueOf(file.length()).intValue());
+//        int co = large4G.compareTo(fileSize);
+        if (file.length() > large4G) {
+//            if (file.length() > (288 * 1024 * 1024)) {
+            long firstDigit = Long.parseLong(Long.toString(file.length()).substring(0, 1));
+            firstDigit++;
+            props.setProperty("jclouds.mpu.parts.size", firstDigit + "3554431");
+            BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
+            blobstore = blobStoreContext.getBlobStore();
+//            }
+//            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
         } else {
             blobstore.putBlob(containerAndPath[0], blob);
         }
