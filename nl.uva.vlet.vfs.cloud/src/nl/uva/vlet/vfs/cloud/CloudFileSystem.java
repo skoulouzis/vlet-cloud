@@ -692,7 +692,7 @@ public class CloudFileSystem extends FileSystemNode {
             BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
             blobstore = blobStoreContext.getBlobStore();
 //            }
-//            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
+            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
         } else {
             blobstore.putBlob(containerAndPath[0], blob);
         }

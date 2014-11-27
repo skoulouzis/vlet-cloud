@@ -12,11 +12,8 @@ import nl.uva.vlet.ClassLogger;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.domain.Blob;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import java.math.BigInteger;
 import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.BlobStoreContext;
-import org.jclouds.blobstore.options.PutOptions;
 
 public class CloudOutputStream extends OutputStream {
 
