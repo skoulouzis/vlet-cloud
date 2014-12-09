@@ -5,6 +5,12 @@
     <groupId>nl.uva.vlet</groupId>
     <artifactId>vlet-vfs.cloud</artifactId>
     <version>2.2</version>
+    
+    <properties>
+        <jclouds.version>1.8.0</jclouds.version>
+    </properties>
+        
+
     <build>
         <sourceDirectory>src</sourceDirectory>
         <plugins>
@@ -35,22 +41,64 @@
     
     <dependencies>
         
-        <!--        <dependency>
-        <groupId>org.apache.jclouds</groupId>
-        <artifactId>jclouds-all</artifactId>
-        <version>1.7.1</version>
-    </dependency>
-        --> 
         <dependency>
             <groupId>org.apache.jclouds</groupId>
             <artifactId>jclouds-blobstore</artifactId>
-            <version>1.8.0</version>
+            <version>${jclouds.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.jclouds</groupId>
             <artifactId>jclouds-allblobstore</artifactId>
-            <version>1.8.0</version>
+            <version>${jclouds.version}</version>
         </dependency>
+        <!--        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>aws-s3</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>aws-ec2</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>ninefold-storage</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>cloudonestorage</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>azureblob</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>cloudfiles-us</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>cloudfiles-uk</artifactId>
+            <version>${jclouds.version}</version>
+            <scope>runtime</scope>
+        </dependency> 
+        <dependency>
+            <groupId>org.apache.jclouds.provider</groupId>
+            <artifactId>hpcloud-objectstorage</artifactId>
+            <version>${jclouds.version}</version><scope>runtime</scope>
+        </dependency>-->
+        
 
          
         <dependency>
@@ -187,13 +235,11 @@
             <version>3.1</version>
         </dependency>
         
-        
         <!--        <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>14.0</version>
-    </dependency>
-        -->
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>15.0</version>
+        </dependency>-->
             
     </dependencies>
 
