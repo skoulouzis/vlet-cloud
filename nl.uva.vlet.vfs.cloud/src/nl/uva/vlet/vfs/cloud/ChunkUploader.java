@@ -5,7 +5,6 @@
 package nl.uva.vlet.vfs.cloud;
 
 import java.io.*;
-import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -34,7 +33,6 @@ import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.util.EntityUtils;
 import org.jclouds.blobstore.BlobStore;
-import org.jclouds.rest.RestContext;
 
 /**
  *

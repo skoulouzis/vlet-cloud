@@ -170,14 +170,17 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     private String removePrefix(String path) {
-        for (String p : prefixPaths) {
-            if (path.length() <= p.length()) {
-                return "";
-            }
-            if (path.contains(p)) {
-                return path.substring(p.length());
+        if (getVRL().getScheme().contains("swift")) {
+            for (String p : prefixPaths) {
+                if (path.length() <= p.length()) {
+                    return "";
+                }
+                if (path.contains(p)) {
+                    return path.substring(p.length());
+                }
             }
         }
+
         return path;
     }
 
@@ -283,7 +286,7 @@ public class CloudFileSystem extends FileSystemNode {
             BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
             blobstore = blobStoreContext.getBlobStore();
 
-            blobstore.containerExists("");
+//            blobstore.containerExists("");
         } catch (Exception ex) {
             if (ex instanceof org.jclouds.rest.AuthorizationException) {
                 throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
@@ -381,6 +384,13 @@ public class CloudFileSystem extends FileSystemNode {
 
     protected boolean exists(VRL vrl, StorageType type) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceException, CloudRequestTimeout, VlException {
         boolean exists = false;
+        String path = vrl.getPath();
+        // normalize and make path absolute
+//        path = resolvePath(path);
+        path = removePrefix(path);
+        if (path.startsWith("/~")) {
+            return false;
+        }
         BlobMetadata meta = null;
         if (vrl.isRootPath()) {
             exists = true;
@@ -743,7 +753,7 @@ public class CloudFileSystem extends FileSystemNode {
             if (!provider.equals("aws-s3")) {
                 endpoint = newServerVRL.copyWithNewScheme(authServiceSchema).toString();
             } else if (provider.equals("aws-s3")) {
-                endpoint = "";
+                endpoint = null;
                 newServerVRL = tmp2;
             }
 
@@ -751,10 +761,10 @@ public class CloudFileSystem extends FileSystemNode {
             if (StringUtil.isEmpty(endpoint) && !provider.equals("aws-s3")) {
                 throw new nl.uva.vlet.exception.VlInitializationException(
                         "Cloud service endpoint is null");
+            } else if (!provider.equals("aws-s3")) {
+                props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
             }
 
-
-            props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
             info.setAuthScheme(ServerInfo.PASSWORD_OR_PASSPHRASE_AUTH);
         }
 

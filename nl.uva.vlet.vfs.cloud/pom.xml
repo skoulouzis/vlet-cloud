@@ -7,7 +7,7 @@
     <version>2.2</version>
     
     <properties>
-        <jclouds.version>1.8.0</jclouds.version>
+        <jclouds.version>1.8.1</jclouds.version>
     </properties>
         
 

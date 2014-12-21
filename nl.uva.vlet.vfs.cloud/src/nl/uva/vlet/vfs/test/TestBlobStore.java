@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import static com.google.common.collect.Iterables.contains;
 import com.google.common.collect.Maps;
+import com.google.common.io.ByteSource;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
@@ -54,6 +55,8 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.jclouds.ContextBuilder;
 import org.jclouds.apis.ApiMetadata;
 import org.jclouds.apis.Apis;
+import org.jclouds.aws.s3.blobstore.AWSS3BlobStore;
+import org.jclouds.aws.s3.blobstore.AWSS3BlobStoreContext;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.domain.PageSet;
 import org.jclouds.blobstore.domain.StorageMetadata;
@@ -128,6 +131,7 @@ public class TestBlobStore {
 
             }
             blob.setPayload(bufferFile);
+
             if (bufferFile.length() > (800 * 1024 * 1024)) {
                 blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart());
             } else {
@@ -251,15 +255,16 @@ public class TestBlobStore {
     }
 
     private static void setup() throws FileNotFoundException, IOException {
-        endpoint = "http://aws.amazon.com/s3/";//"http://10.0.3.208:8080/auth/v1.0/";//"http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
+
+        endpoint = null;//"https://aws.amazon.com/s3/";//"http://10.0.3.208:8080/auth/v1.0/";//"http://10.100.0.24:5000/v2.0/";//"http://10.100.0.24:5000/v2.0/"; //"https://149.156.10.131:8443/auth/v1.0/""
         String provider = "aws-s3";//"swift";//"swift"; // "in-memory" "filesystem";//
         String version = "v2.0";
-        if (endpoint.endsWith("/")) {
+        if (endpoint != null && endpoint.length() >= 1 && endpoint.endsWith("/") && provider.equals("swift")) {
             version = "v2.0/";
         }
         //        Properties props = new Properties();
         props = getCloudProperties();
-        if (endpoint.endsWith(version)) {
+        if (endpoint != null && endpoint.length() >= 1 && endpoint.endsWith(version) && provider.equals("swift")) {
             provider = "swift-keystone";
 //            debug("CredentialTypes: "+CredentialTypes.PASSWORD_CREDENTIALS);
 //            debug("CREDENTIAL_TYPE: "+KeystoneProperties.CREDENTIAL_TYPE);
@@ -270,8 +275,10 @@ public class TestBlobStore {
         if (StringUtil.isEmpty(provider)) {
             throw new NullPointerException("Provider is null!");
         }
+        if (endpoint != null && endpoint.length() >= 1) {
+            props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
+        }
 
-        props.setProperty(org.jclouds.Constants.PROPERTY_ENDPOINT, endpoint);
         props.setProperty(org.jclouds.Constants.PROPERTY_TRUST_ALL_CERTS,
                 "true");
         props.setProperty(org.jclouds.Constants.PROPERTY_RELAX_HOSTNAME, "true");
@@ -298,9 +305,10 @@ public class TestBlobStore {
     private static Properties getCloudProperties()
             throws FileNotFoundException, IOException {
         Properties properties = new Properties();
-        String propPath = System.getProperty("user.home") + File.separator
-                + "workspace" + File.separator + "nl.uva.vlet.vfs.cloud"
-                + File.separator + "etc" + File.separator + "cloud.properties";
+//        String propPath = System.getProperty("user.home") + File.separator
+//                + "workspace" + File.separator + "nl.uva.vlet.vfs.cloud"
+//                + File.separator + "etc" + File.separator + "cloud.properties";
+        String propPath = "etc" + File.separator + "cloud.properties";
         File f = new File(propPath);
         properties.load(new FileInputStream(f));
 
@@ -761,14 +769,11 @@ public class TestBlobStore {
     }
 
     private static void ls() throws InterruptedException, ExecutionException {
-        PageSet<? extends StorageMetadata> res =  blobstore.list();//blobstore.list("/");
-       
+
+        PageSet<? extends StorageMetadata> res = blobstore.list();//blobstore.list("/");
+
         for (StorageMetadata sm : res) {
-            debug("list: " + sm.getName());
-            PageSet<? extends StorageMetadata> files = blobstore.list(sm.getName());
-            for (StorageMetadata f : files) {
-                debug("list: " + f.getName());
-            }
+            debug("list: " + sm.getName() + " Type: " + sm.getType());
         }
     }
 

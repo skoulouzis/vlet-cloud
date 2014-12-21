@@ -55,7 +55,7 @@ public class testVFSCloud extends testVFS {
 //             testLoc = new VRL(
 //                    "swift://10.0.3.25:8080/auth/v1.0/testBlobStoreVFS");
              testLoc = new VRL(
-                    "aws-s3://ec2.amazonaws.com/testBlobStoreVFS");
+                    "aws-s3://aws.amazon.com/testBlobStoreVFS");
              
             
 
@@ -99,9 +99,7 @@ public class testVFSCloud extends testVFS {
     private static Properties getCloudProperties()
             throws FileNotFoundException, IOException {
         Properties properties = new Properties();
-        String propPath = System.getProperty("user.home") + File.separator
-                + "workspace" + File.separator + "nl.uva.vlet.vfs.cloud"
-                + File.separator + "etc" + File.separator + "cloud.properties";
+        String propPath = "etc" + File.separator + "cloud.properties";
         File f = new File(propPath);
         properties.load(new FileInputStream(f));
 
