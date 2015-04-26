@@ -51,20 +51,6 @@ public class testVFSCloud extends testVFS {
     static {
         try {
             testLoc = new VRL(getCloudProperties().getProperty("test.location"));
-//            testLoc = new VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
-//            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
-//            testLoc = new VRL(
-//                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
-//             testLoc = new VRL(
-//                    "swift://10.0.3.25:8080/auth/v1.0/testBlobStoreVFS");
-//             testLoc = new VRL(
-//                    "aws-s3://aws.amazon.com/testBlobStoreVFS");
-
-
-
-//            testLoc = new VRL("sftp://skoulouz@elab.lab.uvalight.net/home/skoulouz/tmp/testBlobStoreVFS");
-//            testLoc = new VRL(
-//                    "filesystem:/testBlobStoreVFS");
         } catch (VRLSyntaxException e) {
             // TODO Auto-generated catch block
             Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, e);
