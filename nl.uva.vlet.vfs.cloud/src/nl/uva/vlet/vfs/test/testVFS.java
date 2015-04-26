@@ -234,6 +234,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testPrintInfo() throws VlException {
+        verbose(3, "testPrintInfo");
         ServerInfo info = this.getVFS().getVRSContext().getServerInfoFor(this.getRemoteLocation(), false);
 
         message(" --- Test Info ---");
@@ -259,6 +260,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testAAAFirst() throws VlException {
+        verbose(3, "testAAAFirst");
         // testListDirIterator();
         // testRenameWithSpaces();
 //        testZCreateDirectoryWhileFileWithSameNameExists();
@@ -274,6 +276,7 @@ public class testVFS extends VTestCase {
      * return an ResourceNotFound exception when the resource doesn't exist.
      */
     public void testExists() throws VlException {
+        verbose(3, "testExists");
         boolean result = getRemoteTestDir().existsFile(
                 "ThisFileShouldnotexist_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ");
         Assert.assertFalse("Exists(): file should not exist!", result);
@@ -299,6 +302,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testRootExists() throws VlException {
+        verbose(3, "testRootExists");
         VRL rootPath = null;
         ServerInfo inf = this.getServerInfo();
         // Use "/" or explicit rootPath
@@ -322,6 +326,7 @@ public class testVFS extends VTestCase {
      * location and 'exists()'.
      */
     public void testTildeExpansion() throws VlException {
+        verbose(3, "testTildeExpansion");
         VFSNode node = getRemoteTestDir().getPath("/~");
         Assert.assertTrue(
                 "Default HOME reports is does not exist (SRB might do this):'/~' => '"
@@ -335,6 +340,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testCreateAndDeleteFile() throws VlException {
+        verbose(3, "testCreateAndDeleteFile");
         verbose(1, "Remote testdir=" + getRemoteTestDir());
 
         // ---
@@ -374,6 +380,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testFSCreateAndDeleteFile() throws VlException {
+        verbose(3, "testFSCreateAndDeleteFile");
         verbose(1, "Remote testdir=" + getRemoteTestDir());
 
         VRL fullpath = getRemoteTestDir().resolvePathVRL(
@@ -416,6 +423,7 @@ public class testVFS extends VTestCase {
 
     private VFile createFile(VFileSystem fs, VRL fullpath, boolean ignore)
             throws VlException {
+        verbose(3, "createFile");
         VFile file = fs.newFile(fullpath);
         file.create(ignore);
         return file;
@@ -428,6 +436,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testCreateAndDeleteFullpathFile() throws VlException {
+        verbose(3, "testCreateAndDeleteFullpathFile");
         verbose(1, "Remote testdir=" + getRemoteTestDir());
 
         VRL filevrl = getRemoteTestDir().getVRL().append(
@@ -495,7 +504,7 @@ public class testVFS extends VTestCase {
             message("***Warning: Skipping test:testCreateDeleteFileWithSpaceAndListParentDir");
             return;
         }
-
+        verbose(3, "testCreateAndDeleteFileWithSpace");
         VFile newFile = getRemoteTestDir().createFile(
                 nextFilename("test File D"));
         newFile.delete();
@@ -514,7 +523,7 @@ public class testVFS extends VTestCase {
             message("***Warning: Skipping test:testCreateDeleteFileWithSpaceAndListParentDir");
             return;
         }
-
+        verbose(3, "testCreateDeleteFileWithSpaceAndListParentDir");
         VFile newFile = getRemoteTestDir().createFile(
                 nextFilename("test File E"));
 
@@ -539,6 +548,7 @@ public class testVFS extends VTestCase {
             message("***Warning: Skipping test:testCreateDeleteFileWithSpaceAndListParentDir");
             return;
         }
+        verbose(3, "testCreateDeleteFolderWithSpaceAndListParentDir");
         VDir newFolder = getRemoteTestDir().createDir(nextFilename("test Folder E"));
 
         verbose(1, "remote filename with space=" + newFolder);
@@ -557,6 +567,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testCreateAndIgnoreExistingFile() throws VlException {
+        verbose(3, "testCreateAndIgnoreExistingFile");
         VFile newFile = getRemoteTestDir().createFile(nextFilename("testFileF"));
 
         // current default implemenation is to ignore existing files!
@@ -569,6 +580,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testFileAttributes() throws VlException {
+        verbose(3, "testFileAttributes");
         VFile newFile = getRemoteTestDir().newFile(nextFilename("testFileAttr"));
 
         testVFSNodeAttributes(newFile);
@@ -586,7 +598,7 @@ public class testVFS extends VTestCase {
      * Test Attribute interface with matching methods !
      */
     private void testVFSNodeAttributes(VFSNode newFile) throws VlException {
-
+        verbose(3, "testVFSNodeAttributes");
         Assert.assertEquals(
                 "Both getType() and getAttribute(ATTR_TYPE) must return same value",
                 newFile.getType(), newFile.getAttribute(ATTR_TYPE).getValue());
@@ -645,6 +657,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testCreateAndDeleteSubDir() throws VlException {
+        verbose(3, "testCreateAndDeleteSubDir");
         VDir newDir = getRemoteTestDir().createDir(nextFilename("testDirA"));
 
         newDir.delete();
@@ -658,7 +671,7 @@ public class testVFS extends VTestCase {
      * a file.
      */
     public void testCreateAndDeleteRecursiveDir() throws VlException {
-
+        verbose(3, "testCreateAndDeleteRecursiveDir");
         VDir newDir = getRemoteTestDir().createDir(nextFilename("testDirB"));
         // create subdir:
         VDir subDir = newDir.createDir("subDir1");
@@ -687,6 +700,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testCreateAndDeleteFullDir() throws VlException {
+        verbose(3, "testCreateAndDeleteFullDir");
         VRL fullPath = getRemoteTestDir().resolvePathVRL(
                 nextFilename("testDirC"));
 
@@ -730,6 +744,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testFSCreateAndDeleteDir() throws VlException {
+        verbose(3, "testFSCreateAndDeleteDir");
         VRL fullPath = getRemoteTestDir().resolvePathVRL(
                 nextFilename("testFSDirE"));
         VFileSystem fs = getRemoteTestDir().getFileSystem();
@@ -744,6 +759,7 @@ public class testVFS extends VTestCase {
 
     private VDir createDir(VFileSystem fs, VRL dirpath, boolean ignore)
             throws VlException {
+        verbose(3, "createDir");
         VDir dir = fs.newDir(dirpath);
         dir.create(ignore);
         return dir;
@@ -755,13 +771,14 @@ public class testVFS extends VTestCase {
             message("***Warning: Skipping test:testCreateAndDeleteDirWithSpace");
             return;
         }
-
+        verbose(3, "testCreateAndDeleteDirWithSpace");
         VDir newDir = getRemoteTestDir().createDir("test Dir F");
 
         newDir.delete();
     }
 
     public void testCreateAndIgnoreExistingDir() throws VlException {
+        verbose(3, "testCreateAndIgnoreExistingDir");
         String dirname = "testDirG";
 
         VDir newDir = getRemoteTestDir().createDir(dirname);
@@ -908,6 +925,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testCopyEmptyDir() throws VlException {
+        verbose(3, "testCopyEmptyDir");
         VRL sourcePath = getRemoteTestDir().resolvePathVRL(
                 nextFilename("testFSDirEmpty_original"));
         VFileSystem fs = getRemoteTestDir().getFileSystem();
@@ -943,7 +961,9 @@ public class testVFS extends VTestCase {
      * file with same name already exists
      */
     public void testCreateDirPermissionDenied() throws VlException {
+        verbose(3, "testCreateDirPermissionDenied");
         try {
+
             VDir root = getRemoteTestDir().getRoot();
             // "/test" is illegal under linux
             if (Global.isLinux() == true) {
@@ -972,6 +992,7 @@ public class testVFS extends VTestCase {
     // VDir.list() filter tests
     // =======================================================================
     public void testListDirFiltered() throws VlException {
+        verbose(3, "testListDirFiltered");
         VDir ldir = getRemoteTestDir().createDir("dirListTest");
 
         // list EMPTY dir:
@@ -1028,6 +1049,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testListDirIterator() throws VlException {
+        verbose(3, "testListDirIterator");
         VDir ldir = getRemoteTestDir().createDir("dirListTest2");
         String fileName0 = "file0";
         String fileName1 = "file1";
@@ -1129,6 +1151,7 @@ public class testVFS extends VTestCase {
     // Other
     // =======================================================================
     public void testACLs() throws VlException {
+        verbose(3, "testACLs");
         VDir dir = this.getRemoteTestDir();
 
         // VFSNode read returns readonly ACL, so is never NULL, unless
@@ -1169,6 +1192,7 @@ public class testVFS extends VTestCase {
     // Logical File Alias and Links:
     // =======================================================================
     public void testAlias() throws VlException {
+        verbose(3, "testAlias");
         VFile orgFile = getRemoteTestDir().createFile("testLinkFileOriginal-1",
                 true);
         String link1name = "testLinkto-1";
@@ -1270,7 +1294,7 @@ public class testVFS extends VTestCase {
         if (getTestWriteTests() == false) {
             return;
         }
-
+        verbose(3, "testSetGetSimpleContentsNewFile");
         // test1: small string
         VFileSystem fs = getRemoteTestDir().getFileSystem();
         VFile newFile = fs.newFile(getRemoteTestDir().resolvePathVRL(
@@ -1326,7 +1350,7 @@ public class testVFS extends VTestCase {
         if (getTestWriteTests() == false) {
             return;
         }
-
+        verbose(3, "testSetGetSimpleContentsExistingFile");
         // create existing file first:
         VFile newFile = getRemoteTestDir().createFile("testFile7b");
         newFile.setContents(TEST_CONTENTS);
@@ -1376,7 +1400,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testCopyMoveToRemote(boolean isMove) throws VlException {
-
+        verbose(3, "testCopyMoveToRemote");
         VFile localFile = null;
         VFile remoteFile = null;
 
@@ -1413,7 +1437,7 @@ public class testVFS extends VTestCase {
         if (getTestDoBigTests() == false) {
             return;
         }
-
+        verbose(3, "testMove10MBForthAndBack");
         VFile localFile = null;
         VFile remoteFile = null;
 
@@ -1498,7 +1522,7 @@ public class testVFS extends VTestCase {
         if (getTestDoBigTests() == false) {
             return;
         }
-
+        verbose(3, "testStreamRead");
         VFile localFile = null;
         VFile remoteFile = null;
 
@@ -1584,7 +1608,7 @@ public class testVFS extends VTestCase {
         if (getTestDoBigTests() == false) {
             return;
         }
-
+        verbose(3, "testStreamWrite");
         VFile localFile = null;
         VFile remoteFile = null;
 
@@ -1649,6 +1673,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testStreamWriteTruncates() throws VlException {
+        verbose(3, "testStreamWriteTruncates");
         VFile remoteFile = null;
         remoteFile = getRemoteTestDir().createFile("testStreamWriteTruncate");
 
@@ -1692,7 +1717,7 @@ public class testVFS extends VTestCase {
         if (true) {
             return;
         }
-
+        verbose(3, "testMultiStreamWritesCheckLengths");
         int numTries = 50;
         int maxSize = 1000;
 
@@ -1738,14 +1763,17 @@ public class testVFS extends VTestCase {
     }
 
     public void testCopyToRemote() throws VlException {
+        verbose(3, "testCopyToRemote");
         testCopyMoveToRemote(false);
     }
 
     public void testMoveToRemote() throws VlException {
+        verbose(3, "testMoveToRemote");
         testCopyMoveToRemote(true);
     }
 
     public void testCopyMoveToLocal(boolean isMove) throws VlException {
+        verbose(3, "testCopyMoveToLocal");
         VFile localFile = null;
         VFile remoteFile = null;
 
@@ -1778,10 +1806,12 @@ public class testVFS extends VTestCase {
     }
 
     public void testCopyToLocal() throws VlException {
+        verbose(3, "testCopyToLocal");
         testCopyMoveToLocal(false);
     }
 
     public void testMoveToLocal() throws VlException {
+        verbose(3, "testMoveToLocal");
         testCopyMoveToLocal(true);
     }
 
@@ -1789,6 +1819,7 @@ public class testVFS extends VTestCase {
      * Test readRandomBytes first before testing random reads+writes
      */
     public void testRandomReadable() throws VlException {
+        verbose(3, "testRandomReadable");
         VFile localFile = this.localTempDir.createFile("readBytesFile1");
         int len = 16;
         byte orgBuffer[] = new byte[len];
@@ -1847,6 +1878,7 @@ public class testVFS extends VTestCase {
 
     private void _testRandomReadable(VRandomReadable rfile, int offset,
             int end, byte orgBuffer[]) throws VlException {
+        verbose(3, "_testRandomReadable");
         byte readBuffer[] = new byte[orgBuffer.length];
 
         int numread = rfile.readBytes(offset, readBuffer, offset, end - offset);
@@ -1863,6 +1895,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testVRandomReader() throws VlException {
+        verbose(3, "testVRandomReader");
         VFile localFile = this.localTempDir.createFile("RandomReaderFile");
 
         StringBuffer contents = new StringBuffer();
@@ -1931,7 +1964,7 @@ public class testVFS extends VTestCase {
         if (getTestWriteTests() == false) {
             return;
         }
-
+        verbose(3, "testReadWriteBytes");
         VFile newFile = getRemoteTestDir().createFile("someBytes");
 
         // write single byte:
@@ -1977,7 +2010,7 @@ public class testVFS extends VTestCase {
         if (getTestWriteTests() == false) {
             return;
         }
-
+        verbose(3, "testReadWriteRandomBytes");
         VFile newFile = getRemoteTestDir().createFile("randomBytes");
         VRandomAccessable randomWriter = null;
 
@@ -2091,6 +2124,7 @@ public class testVFS extends VTestCase {
 
     private void testReadWriteBytes(VFile newFile, long offset, byte[] buffer1)
             throws VlException {
+        verbose(3, "testReadWriteBytes");
         VRandomAccessable randomWriter = null;
 
         if (newFile instanceof VRandomAccessable) {
@@ -2131,6 +2165,7 @@ public class testVFS extends VTestCase {
      * }
      */
     public void testCopyDirToRemote() throws VlException {
+        verbose(3, "testCopyDirToRemote");
         String subdirName = "subdir";
 
         VDir localTestDir = localTempDir.createDir(subdirName);
@@ -2187,6 +2222,7 @@ public class testVFS extends VTestCase {
      * @throws Exception
      */
     public void testStreamReadWriteSingleBytes() throws Exception {
+        verbose(3, "testStreamReadWriteSingleBytes");
         VFile remoteFile = null;
 
         // negative values should be auto-casted to their positive (usigned)
@@ -2226,6 +2262,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testSetLength() throws VlException {
+        verbose(3, "testSetLength");
         VFile file = getRemoteTestDir().createFile("testFileLength", true);
 
         Assert.assertEquals("New file must have zero length !", 0,
@@ -2268,6 +2305,7 @@ public class testVFS extends VTestCase {
     }
 
     private void _testStreamWrite(int targetSize) throws VlException {
+        verbose(3, "_testStreamWrite");
         VFile file = getRemoteTestDir().createFile("streamWrite", true);
         // write 1MB buffer:
         byte[] buffer = new byte[targetSize];
@@ -2288,7 +2326,7 @@ public class testVFS extends VTestCase {
             message("Skipping Unix atributes test for windows filesystem...");
             return;
         }
-
+verbose(3, "testVUnixAttributes");
         VFile remoteFile = getRemoteTestDir().newFile("testUnixAttrs.txt");
 
         if (remoteFile instanceof VUnixFileAttributes) {
@@ -2322,6 +2360,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testVCommentable() throws VlException {
+        verbose(3, "testVCommentable");
         VFile file = getRemoteTestDir().createFile("testFile");
 
         if (file instanceof VCommentable) {
@@ -2354,6 +2393,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testVChecksum() throws VlException {
+        verbose(3, "testVChecksum");
         VFile remoteFile = getRemoteTestDir().createFile("testChecksum.txt");
 
         remoteFile.setContents(TEST_CONTENTS);
@@ -2421,7 +2461,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testVReplicatable() throws VlException {
-
+        verbose(3, "testVReplicatable");
         String fileName = "testReplicable.txt";
         VFile remoteFile = null;
 
@@ -2642,6 +2682,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testX3rdPartySameServer() throws VlException {
+        verbose(3, "testX3rdPartySameServer");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getRemoteLocation();
@@ -2653,6 +2694,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testX3rdPartySameServerReverse() throws VlException {
+          verbose(3, "testX3rdPartySameServerReverse");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getRemoteLocation();
@@ -2664,6 +2706,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testX3rdPartyTwoServers() throws VlException {
+              verbose(3, "testX3rdPartyTwoServers");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getOtherRemoteLocation();
@@ -2678,6 +2721,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testX3rdPartyTwoServersReverse() throws VlException {
+          verbose(3, "testX3rdPartyTwoServersReverse");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getRemoteLocation();
@@ -2712,6 +2756,7 @@ public class testVFS extends VTestCase {
     public void testX3rdPartyTransfer(VRL sourceDir, VRL targetDir,
             String sourceFilename, String targetFilename,
             boolean sourceIsActiveParty) throws VlException {
+        verbose(3, "testX3rdPartyTransfer");
         VDir dir1 = getVFS().mkdir(sourceDir, true);
         VDir dir2 = getVFS().mkdir(targetDir, true);
 
@@ -2824,6 +2869,7 @@ public class testVFS extends VTestCase {
      * @throws VlException
      */
     public void testZRegressionStreamWrite32KBug() throws VlException {
+        verbose(3, "testZRegressionStreamWrite32KBug");
         _testStreamWrite(32000); // this worked
         _testStreamWrite(1024 * 1024); // this didn't work
     }
@@ -2837,6 +2883,7 @@ public class testVFS extends VTestCase {
     // junit 4: @Test(expected=ResourceAlreadyExistsException.class)
     public void testZExceptionCreateFileDoNotIgnoreExisting()
             throws VlException {
+           verbose(3, "testZExceptionCreateFileDoNotIgnoreExisting");
         VFile newFile = getRemoteTestDir().createFile("testFile1");
 
         // current implemenation is to ignore existing files
@@ -2856,6 +2903,7 @@ public class testVFS extends VTestCase {
      * API test for atomic directory creation.
      */
     public void testZExceptionCreateDirNotIgnoreExsting() throws VlException {
+        verbose(3, "testZExceptionCreateDirNotIgnoreExsting");
         VDir newDir = getRemoteTestDir().createDir("testDir1");
         try {
             newDir = getRemoteTestDir().createDir("testDir1", false);
@@ -2871,6 +2919,7 @@ public class testVFS extends VTestCase {
 
     public void testZCreateDirectoryWhileFileWithSameNameExists()
             throws VlException {
+          verbose(3, "testZCreateDirectoryWhileFileWithSameNameExists");
         String fdname = "testfiledir2";
 
         if (getRemoteTestDir().existsDir(fdname)) {
@@ -2909,6 +2958,7 @@ public class testVFS extends VTestCase {
 
     public void testZCreateFileWhileDirectoryWithSameNameExists()
             throws VlException {
+         verbose(3, "testZCreateFileWhileDirectoryWithSameNameExists");
         VDir newDir = getRemoteTestDir().createDir("testfiledir3");
 
         // MUST return false!
@@ -2933,6 +2983,7 @@ public class testVFS extends VTestCase {
 
     // junit 4: @Test(expected=ResourceAlreadyExistsException.class)
     public void testZExceptionsExistingFile() throws VlException {
+              verbose(3, "testZExceptionsExistingFile");
         VFile newFile = getRemoteTestDir().createFile("testExistingFile1");
 
         // current implemenation is to ignore existing files
@@ -2972,6 +3023,7 @@ public class testVFS extends VTestCase {
     }
 
     public void testZExceptionsExistingDir() throws VlException {
+          verbose(3, "testZExceptionsExistingDir");
         VDir newDir = getRemoteTestDir().createDir("testExistingDir2");
 
         try {
@@ -3213,6 +3265,7 @@ public class testVFS extends VTestCase {
      * LAST UNIT TEST: Cleanup test directories
      */
     public void testZZZRemoveTestDir() {
+        verbose(3, "testZZZRemoveTestDir");
         try {
             this.getRemoteTestDir().delete(true);
         } catch (Exception e) {
