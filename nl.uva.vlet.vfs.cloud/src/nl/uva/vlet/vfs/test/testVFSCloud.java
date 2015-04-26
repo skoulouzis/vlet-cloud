@@ -56,8 +56,8 @@ public class testVFSCloud extends testVFS {
 //                    "swift://10.0.3.25:8080/auth/v1.0/testBlobStoreVFS");
 //             testLoc = new VRL(
 //                    "aws-s3://aws.amazon.com/testBlobStoreVFS");
-             
-            
+
+
 
 //            testLoc = new VRL("sftp://skoulouz@elab.lab.uvalight.net/home/skoulouz/tmp/testBlobStoreVFS");
 //            testLoc = new VRL(
@@ -94,6 +94,11 @@ public class testVFSCloud extends testVFS {
         info.store();
 
         return new TestSuite(testVFSCloud.class);
+    }
+
+    @Override
+    boolean getTestEncodedPaths() {
+        return false;
     }
 
     private static Properties getCloudProperties()

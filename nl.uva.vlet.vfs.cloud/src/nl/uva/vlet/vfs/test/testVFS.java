@@ -3016,164 +3016,164 @@ public class testVFS extends VTestCase {
         newFile.delete();
     }
 
-    public void testUpDownloadLargeFile2() throws VlException, IOException {
-
-        VFile localFile = localTempDir.createFile("tesLargeFile2");
-        byte[] randomData = new byte[1024 * 1024];//1MB
-        Random r = new Random();
-        OutputStream lfos = localFile.getOutputStream();
-        int count = 800;
-        for (int i = 0; i < count; i++) {
-            r.nextBytes(randomData);
-            lfos.write(randomData);
-        }
-
-        lfos.flush();
-        lfos.close();
-        
-        verbose(VERBOSE_INFO,"Uploading file size: "+ (localFile.getLength() / (1024.0*1024.0)) + " MB" );
-
-        VFile remoteFile = getRemoteTestDir().createFile("tesLargeFile2");
-
-
-        long startTime = System.currentTimeMillis();
-        if (remoteFile instanceof CloudFile) {
-            ((CloudFile) remoteFile).uploadFrom(localFile);
-        } else {
-            localFile.copyTo(remoteFile);
-        }
-        long totalTime = System.currentTimeMillis() - startTime;
-
-        long len = remoteFile.getLength();
-        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
-        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
-        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-                + "KB/s");
-
-
-        long expectedLen = randomData.length * count;
-        assertEquals(expectedLen, len);
-        remoteFile.delete();
-        localFile.delete();
-
-    }
-    public void testFileConsistency() throws VlException, IOException {
-        VFile localFile = localTempDir.createFile("tesLargeFile2");
-        byte[] randomData = new byte[1024 * 1024];//1MB        
-        Random r = new Random();
-        for (int count = 306; count < 326; count++) {
-            OutputStream lfos = localFile.getOutputStream();
-//            int count = 209;//From 289 to 305 fails. 33554434 is the wrong byte 
-            for (int i = 0; i < count; i++) {
-                r.nextBytes(randomData);
-//            String sd = new BigInteger(130, r).toString()+"\n";
-//            lfos.write(sd.getBytes());
-//            lfos.write(String.valueOf("You can use the -S option to specify the segment size to use when splitting a large file" + i + "\n").getBytes());
-                lfos.write(randomData);
-            }
-
-            lfos.flush();
-            lfos.close();
-
-            VChecksum checksumLocalFile = (VChecksum) localFile;
-            String md5Local = checksumLocalFile.getChecksum(VChecksum.MD5);
-
-
-            VFile remoteFile = getRemoteTestDir().createFile("tesLargeFileRemote2");
-
-
-            long startTime = System.currentTimeMillis();
-            if (remoteFile instanceof CloudFile) {
-                ((CloudFile) remoteFile).uploadFrom(localFile);
-            } else {
-                localFile.copyTo(remoteFile);
-            }
-            long totalTime = System.currentTimeMillis() - startTime;
-
-            long len = remoteFile.getLength();
-            verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
-            double up_speed = (len / 1024.0) / (totalTime / 1000.0);
-            verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-                    + "KB/s");
-
-
-            long expectedLen = localFile.getLength();
-            assertEquals(expectedLen, len);
-            VFile copy = remoteFile.copyToDir(getLocalTempDirVRL());
-            VChecksum checksumRemoteFile = (VChecksum) copy;
-            String md5Remote = checksumRemoteFile.getChecksum(VChecksum.MD5);
-
-            assertEquals("Size: "+count,md5Local, md5Remote);
-
-            remoteFile.delete();
-            localFile.delete();
-            copy.delete();
-        }
-
-    }
-
-    public void testUpDownloadLargeFile() throws VlException, IOException {
-
-        VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
-        byte[] randomData = new byte[1024 * 1024];//1MB
-        Random r = new Random();
-        OutputStream lfos = newFile.getOutputStream();
-        int count = 50;
-
-        long startTime = System.currentTimeMillis();
-
-        for (int i = 0; i < count; i++) {
-            r.nextBytes(randomData);
-            lfos.write(randomData);
-        }
-
-        lfos.flush();
-        lfos.close();
-        long totalTime = System.currentTimeMillis() - startTime;
-
-
-        long len = newFile.getLength();
-        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0) + " MB");
-        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
-        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-                + "KB/s");
-
-
-        long expectedLen = randomData.length * count;
-        assertEquals(expectedLen, len);
-
-        startTime = System.currentTimeMillis();
-        VFile newLocalFile = newFile.moveTo(this.localTempDir, "testLargeFile");
-
-        totalTime = System.currentTimeMillis() - startTime;
-
-        double down_speed = (newLocalFile.getLength() / 1024.0) / (totalTime / 1000.0);
-        verbose(1, "download speed=" + ((int) (down_speed * 1000)) / 1000.0
-                + "KB/s");
-
-        Assert.assertNotNull("new local File is NULL", newLocalFile);
-        Assert.assertFalse("remote file reports it still exists, after it has moved", newFile.exists());
-
-        newLocalFile.delete();
-
-        //Now test lots of small
-        startTime = System.currentTimeMillis();
-        for (int i = 0; i < count; i++) {
-            r.nextBytes(randomData);
-            getRemoteTestDir().createFile("tesLargeFile" + i).setContents(randomData);
-        }
-
-        totalTime = System.currentTimeMillis() - startTime;
-        up_speed = ((count * randomData.length) / 1024.0) / (totalTime / 1000.0);
-        verbose(1, "Many files upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-                + "KB/s");
-
-
-        for (VFSNode n : getRemoteTestDir().getNodes()) {
-            n.delete();
-        }
-
-    }
+//    public void testUpDownloadLargeFile2() throws VlException, IOException {
+//
+//        VFile localFile = localTempDir.createFile("tesLargeFile2");
+//        byte[] randomData = new byte[1024 * 1024];//1MB
+//        Random r = new Random();
+//        OutputStream lfos = localFile.getOutputStream();
+//        int count = 800;
+//        for (int i = 0; i < count; i++) {
+//            r.nextBytes(randomData);
+//            lfos.write(randomData);
+//        }
+//
+//        lfos.flush();
+//        lfos.close();
+//        
+//        verbose(VERBOSE_INFO,"Uploading file size: "+ (localFile.getLength() / (1024.0*1024.0)) + " MB" );
+//
+//        VFile remoteFile = getRemoteTestDir().createFile("tesLargeFile2");
+//
+//
+//        long startTime = System.currentTimeMillis();
+//        if (remoteFile instanceof CloudFile) {
+//            ((CloudFile) remoteFile).uploadFrom(localFile);
+//        } else {
+//            localFile.copyTo(remoteFile);
+//        }
+//        long totalTime = System.currentTimeMillis() - startTime;
+//
+//        long len = remoteFile.getLength();
+//        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
+//        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+//        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+//                + "KB/s");
+//
+//
+//        long expectedLen = randomData.length * count;
+//        assertEquals(expectedLen, len);
+//        remoteFile.delete();
+//        localFile.delete();
+//
+//    }
+//    public void testFileConsistency() throws VlException, IOException {
+//        VFile localFile = localTempDir.createFile("tesLargeFile2");
+//        byte[] randomData = new byte[1024 * 1024];//1MB        
+//        Random r = new Random();
+//        for (int count = 306; count < 326; count++) {
+//            OutputStream lfos = localFile.getOutputStream();
+////            int count = 209;//From 289 to 305 fails. 33554434 is the wrong byte 
+//            for (int i = 0; i < count; i++) {
+//                r.nextBytes(randomData);
+////            String sd = new BigInteger(130, r).toString()+"\n";
+////            lfos.write(sd.getBytes());
+////            lfos.write(String.valueOf("You can use the -S option to specify the segment size to use when splitting a large file" + i + "\n").getBytes());
+//                lfos.write(randomData);
+//            }
+//
+//            lfos.flush();
+//            lfos.close();
+//
+//            VChecksum checksumLocalFile = (VChecksum) localFile;
+//            String md5Local = checksumLocalFile.getChecksum(VChecksum.MD5);
+//
+//
+//            VFile remoteFile = getRemoteTestDir().createFile("tesLargeFileRemote2");
+//
+//
+//            long startTime = System.currentTimeMillis();
+//            if (remoteFile instanceof CloudFile) {
+//                ((CloudFile) remoteFile).uploadFrom(localFile);
+//            } else {
+//                localFile.copyTo(remoteFile);
+//            }
+//            long totalTime = System.currentTimeMillis() - startTime;
+//
+//            long len = remoteFile.getLength();
+//            verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
+//            double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+//            verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+//                    + "KB/s");
+//
+//
+//            long expectedLen = localFile.getLength();
+//            assertEquals(expectedLen, len);
+//            VFile copy = remoteFile.copyToDir(getLocalTempDirVRL());
+//            VChecksum checksumRemoteFile = (VChecksum) copy;
+//            String md5Remote = checksumRemoteFile.getChecksum(VChecksum.MD5);
+//
+//            assertEquals("Size: "+count,md5Local, md5Remote);
+//
+//            remoteFile.delete();
+//            localFile.delete();
+//            copy.delete();
+//        }
+//
+//    }
+//
+//    public void testUpDownloadLargeFile() throws VlException, IOException {
+//
+//        VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
+//        byte[] randomData = new byte[1024 * 1024];//1MB
+//        Random r = new Random();
+//        OutputStream lfos = newFile.getOutputStream();
+//        int count = 50;
+//
+//        long startTime = System.currentTimeMillis();
+//
+//        for (int i = 0; i < count; i++) {
+//            r.nextBytes(randomData);
+//            lfos.write(randomData);
+//        }
+//
+//        lfos.flush();
+//        lfos.close();
+//        long totalTime = System.currentTimeMillis() - startTime;
+//
+//
+//        long len = newFile.getLength();
+//        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0) + " MB");
+//        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+//        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+//                + "KB/s");
+//
+//
+//        long expectedLen = randomData.length * count;
+//        assertEquals(expectedLen, len);
+//
+//        startTime = System.currentTimeMillis();
+//        VFile newLocalFile = newFile.moveTo(this.localTempDir, "testLargeFile");
+//
+//        totalTime = System.currentTimeMillis() - startTime;
+//
+//        double down_speed = (newLocalFile.getLength() / 1024.0) / (totalTime / 1000.0);
+//        verbose(1, "download speed=" + ((int) (down_speed * 1000)) / 1000.0
+//                + "KB/s");
+//
+//        Assert.assertNotNull("new local File is NULL", newLocalFile);
+//        Assert.assertFalse("remote file reports it still exists, after it has moved", newFile.exists());
+//
+//        newLocalFile.delete();
+//
+//        //Now test lots of small
+//        startTime = System.currentTimeMillis();
+//        for (int i = 0; i < count; i++) {
+//            r.nextBytes(randomData);
+//            getRemoteTestDir().createFile("tesLargeFile" + i).setContents(randomData);
+//        }
+//
+//        totalTime = System.currentTimeMillis() - startTime;
+//        up_speed = ((count * randomData.length) / 1024.0) / (totalTime / 1000.0);
+//        verbose(1, "Many files upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+//                + "KB/s");
+//
+//
+//        for (VFSNode n : getRemoteTestDir().getNodes()) {
+//            n.delete();
+//        }
+//
+//    }
     // ========================================================================
     // Abstract Interface
     // ========================================================================

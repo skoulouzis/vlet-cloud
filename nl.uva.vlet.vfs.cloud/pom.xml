@@ -23,7 +23,7 @@
                 <version>2.5</version>
             </plugin> 
             
-            <plugin>
+            <!--            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <executions>
@@ -35,6 +35,19 @@
                     </execution>
                 </executions>
                 <version>2.1.2</version>
+            </plugin>-->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>fully.qualified.MainClass</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
             </plugin>
         </plugins>   
     </build>
@@ -247,7 +260,7 @@
 
 
     <repositories>
-<!--        <repository>
+        <!--        <repository>
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-releases</name>
             <url>http://elab.lab.uvalight.net/artifactory/repo</url>
@@ -261,7 +274,7 @@
             </snapshots>
         </repository>-->
         
-         <repository>
+        <repository>
             <snapshots />
             <id>skoulouzis-snapshots</id>
             <url>https://raw.github.com/skoulouzis/mvn-repo/master/snapshots</url>
@@ -280,7 +293,7 @@
     
     
     
-<!--    <distributionManagement>
+    <!--    <distributionManagement>
         <repository>
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-releases</name>
