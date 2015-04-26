@@ -3261,23 +3261,23 @@ verbose(3, "testVUnixAttributes");
         return doBigTests;
     }
 
-    /**
-     * LAST UNIT TEST: Cleanup test directories
-     */
-    public void testZZZRemoveTestDir() {
-        verbose(3, "testZZZRemoveTestDir");
-        try {
-            this.getRemoteTestDir().delete(true);
-        } catch (Exception e) {
-            message("*** Warning. Deleting remote test directory failed:" + e);
-        }
-
-        try {
-            this.localTempDir.delete(true);
-        } catch (Exception e) {
-            message("*** Warning. Deleting local test directory failed:" + e);
-        }
-    }
+//    /**
+//     * LAST UNIT TEST: Cleanup test directories
+//     */
+//    public void testZZZRemoveTestDir() {
+//        verbose(3, "testZZZRemoveTestDir");
+//        try {
+//            this.getRemoteTestDir().delete(true);
+//        } catch (Exception e) {
+//            message("*** Warning. Deleting remote test directory failed:" + e);
+//        }
+//
+//        try {
+//            this.localTempDir.delete(true);
+//        } catch (Exception e) {
+//            message("*** Warning. Deleting local test directory failed:" + e);
+//        }
+//    }
 
     public void setRemoteTestDir(VDir remoteTestDir) {
         this.remoteTestDir = remoteTestDir;
