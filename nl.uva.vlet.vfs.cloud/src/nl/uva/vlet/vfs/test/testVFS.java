@@ -3069,7 +3069,10 @@ public class testVFS extends VTestCase {
     }
 
     public void testUpDownloadLargeFile2() throws VlException, IOException {
-
+        if (getTestDoBigTests() == false) {
+            return;
+        }
+        verbose(3, "testUpDownloadLargeFile2");
         VFile localFile = localTempDir.createFile("tesLargeFile2");
         byte[] randomData = new byte[1024 * 1024];//1MB
         Random r = new Random();
@@ -3111,6 +3114,11 @@ public class testVFS extends VTestCase {
     }
 
     public void testFileConsistency() throws VlException, IOException {
+                if (getTestDoBigTests() == false) {
+            return;
+        }
+        verbose(3, "testFileConsistency");
+        
         VFile localFile = localTempDir.createFile("tesLargeFile2");
         byte[] randomData = new byte[1024 * 1024];//1MB        
         Random r = new Random();
@@ -3166,7 +3174,11 @@ public class testVFS extends VTestCase {
     }
 
     public void testUpDownloadLargeFile() throws VlException, IOException {
-
+        if (getTestDoBigTests() == false) {
+            return;
+        }
+        verbose(3, "testUpDownloadLargeFile");
+        
         VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
         byte[] randomData = new byte[1024 * 1024];//1MB
         Random r = new Random();

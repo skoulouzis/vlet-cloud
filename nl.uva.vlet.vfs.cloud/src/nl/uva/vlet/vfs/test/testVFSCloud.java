@@ -104,6 +104,18 @@ public class testVFSCloud extends testVFS {
         return properties;
     }
 
+    @Override
+    protected boolean getTestDoBigTests() {
+        try {
+            return Boolean.valueOf(getCloudProperties().getProperty("big.tests", "false"));
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
     public static void main(String args[]) {
         try {
             junit.textui.TestRunner.run(suite());
