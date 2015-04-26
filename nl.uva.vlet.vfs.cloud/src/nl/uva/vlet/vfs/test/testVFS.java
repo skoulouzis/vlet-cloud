@@ -156,7 +156,7 @@ public class testVFS extends VTestCase {
 
         synchronized (setupMutex) {
             // create/get only if VDir hasn't been fetched/created before !
-            if (getRemoteTestDir() == null) {
+//            if (getRemoteTestDir() == null) {
 
                 if (getVFS().existsDir(getRemoteLocation())) {
                     setRemoteTestDir(getVFS().getDir(getRemoteLocation()));
@@ -184,7 +184,7 @@ public class testVFS extends VTestCase {
                             + getRemoteTestDir());
                 }
 
-            }
+//            }
 
             if (localTempDir == null) {
                 VRL localdir = getLocalTempDirVRL();
