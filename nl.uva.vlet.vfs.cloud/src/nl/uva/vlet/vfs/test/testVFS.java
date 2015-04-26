@@ -2326,7 +2326,7 @@ public class testVFS extends VTestCase {
             message("Skipping Unix atributes test for windows filesystem...");
             return;
         }
-verbose(3, "testVUnixAttributes");
+        verbose(3, "testVUnixAttributes");
         VFile remoteFile = getRemoteTestDir().newFile("testUnixAttrs.txt");
 
         if (remoteFile instanceof VUnixFileAttributes) {
@@ -2694,7 +2694,7 @@ verbose(3, "testVUnixAttributes");
     }
 
     public void testX3rdPartySameServerReverse() throws VlException {
-          verbose(3, "testX3rdPartySameServerReverse");
+        verbose(3, "testX3rdPartySameServerReverse");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getRemoteLocation();
@@ -2706,7 +2706,7 @@ verbose(3, "testVUnixAttributes");
     }
 
     public void testX3rdPartyTwoServers() throws VlException {
-              verbose(3, "testX3rdPartyTwoServers");
+        verbose(3, "testX3rdPartyTwoServers");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getOtherRemoteLocation();
@@ -2721,7 +2721,7 @@ verbose(3, "testVUnixAttributes");
     }
 
     public void testX3rdPartyTwoServersReverse() throws VlException {
-          verbose(3, "testX3rdPartyTwoServersReverse");
+        verbose(3, "testX3rdPartyTwoServersReverse");
         VRL loc1 = getRemoteLocation();
 
         VRL loc2 = getRemoteLocation();
@@ -2883,7 +2883,7 @@ verbose(3, "testVUnixAttributes");
     // junit 4: @Test(expected=ResourceAlreadyExistsException.class)
     public void testZExceptionCreateFileDoNotIgnoreExisting()
             throws VlException {
-           verbose(3, "testZExceptionCreateFileDoNotIgnoreExisting");
+        verbose(3, "testZExceptionCreateFileDoNotIgnoreExisting");
         VFile newFile = getRemoteTestDir().createFile("testFile1");
 
         // current implemenation is to ignore existing files
@@ -2919,7 +2919,7 @@ verbose(3, "testVUnixAttributes");
 
     public void testZCreateDirectoryWhileFileWithSameNameExists()
             throws VlException {
-          verbose(3, "testZCreateDirectoryWhileFileWithSameNameExists");
+        verbose(3, "testZCreateDirectoryWhileFileWithSameNameExists");
         String fdname = "testfiledir2";
 
         if (getRemoteTestDir().existsDir(fdname)) {
@@ -2958,7 +2958,7 @@ verbose(3, "testVUnixAttributes");
 
     public void testZCreateFileWhileDirectoryWithSameNameExists()
             throws VlException {
-         verbose(3, "testZCreateFileWhileDirectoryWithSameNameExists");
+        verbose(3, "testZCreateFileWhileDirectoryWithSameNameExists");
         VDir newDir = getRemoteTestDir().createDir("testfiledir3");
 
         // MUST return false!
@@ -2983,7 +2983,7 @@ verbose(3, "testVUnixAttributes");
 
     // junit 4: @Test(expected=ResourceAlreadyExistsException.class)
     public void testZExceptionsExistingFile() throws VlException {
-              verbose(3, "testZExceptionsExistingFile");
+        verbose(3, "testZExceptionsExistingFile");
         VFile newFile = getRemoteTestDir().createFile("testExistingFile1");
 
         // current implemenation is to ignore existing files
@@ -3023,7 +3023,7 @@ verbose(3, "testVUnixAttributes");
     }
 
     public void testZExceptionsExistingDir() throws VlException {
-          verbose(3, "testZExceptionsExistingDir");
+        verbose(3, "testZExceptionsExistingDir");
         VDir newDir = getRemoteTestDir().createDir("testExistingDir2");
 
         try {
@@ -3068,168 +3068,170 @@ verbose(3, "testVUnixAttributes");
         newFile.delete();
     }
 
-//    public void testUpDownloadLargeFile2() throws VlException, IOException {
-//
-//        VFile localFile = localTempDir.createFile("tesLargeFile2");
-//        byte[] randomData = new byte[1024 * 1024];//1MB
-//        Random r = new Random();
-//        OutputStream lfos = localFile.getOutputStream();
-//        int count = 800;
-//        for (int i = 0; i < count; i++) {
-//            r.nextBytes(randomData);
-//            lfos.write(randomData);
-//        }
-//
-//        lfos.flush();
-//        lfos.close();
-//        
-//        verbose(VERBOSE_INFO,"Uploading file size: "+ (localFile.getLength() / (1024.0*1024.0)) + " MB" );
-//
-//        VFile remoteFile = getRemoteTestDir().createFile("tesLargeFile2");
-//
-//
-//        long startTime = System.currentTimeMillis();
-//        if (remoteFile instanceof CloudFile) {
-//            ((CloudFile) remoteFile).uploadFrom(localFile);
-//        } else {
-//            localFile.copyTo(remoteFile);
-//        }
-//        long totalTime = System.currentTimeMillis() - startTime;
-//
-//        long len = remoteFile.getLength();
-//        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
-//        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
-//        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-//                + "KB/s");
-//
-//
-//        long expectedLen = randomData.length * count;
-//        assertEquals(expectedLen, len);
-//        remoteFile.delete();
-//        localFile.delete();
-//
-//    }
-//    public void testFileConsistency() throws VlException, IOException {
-//        VFile localFile = localTempDir.createFile("tesLargeFile2");
-//        byte[] randomData = new byte[1024 * 1024];//1MB        
-//        Random r = new Random();
-//        for (int count = 306; count < 326; count++) {
-//            OutputStream lfos = localFile.getOutputStream();
-////            int count = 209;//From 289 to 305 fails. 33554434 is the wrong byte 
-//            for (int i = 0; i < count; i++) {
-//                r.nextBytes(randomData);
-////            String sd = new BigInteger(130, r).toString()+"\n";
-////            lfos.write(sd.getBytes());
-////            lfos.write(String.valueOf("You can use the -S option to specify the segment size to use when splitting a large file" + i + "\n").getBytes());
-//                lfos.write(randomData);
-//            }
-//
-//            lfos.flush();
-//            lfos.close();
-//
-//            VChecksum checksumLocalFile = (VChecksum) localFile;
-//            String md5Local = checksumLocalFile.getChecksum(VChecksum.MD5);
-//
-//
-//            VFile remoteFile = getRemoteTestDir().createFile("tesLargeFileRemote2");
-//
-//
-//            long startTime = System.currentTimeMillis();
-//            if (remoteFile instanceof CloudFile) {
-//                ((CloudFile) remoteFile).uploadFrom(localFile);
-//            } else {
-//                localFile.copyTo(remoteFile);
-//            }
-//            long totalTime = System.currentTimeMillis() - startTime;
-//
-//            long len = remoteFile.getLength();
-//            verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
-//            double up_speed = (len / 1024.0) / (totalTime / 1000.0);
-//            verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-//                    + "KB/s");
-//
-//
-//            long expectedLen = localFile.getLength();
-//            assertEquals(expectedLen, len);
-//            VFile copy = remoteFile.copyToDir(getLocalTempDirVRL());
-//            VChecksum checksumRemoteFile = (VChecksum) copy;
-//            String md5Remote = checksumRemoteFile.getChecksum(VChecksum.MD5);
-//
-//            assertEquals("Size: "+count,md5Local, md5Remote);
-//
-//            remoteFile.delete();
-//            localFile.delete();
-//            copy.delete();
-//        }
-//
-//    }
-//
-//    public void testUpDownloadLargeFile() throws VlException, IOException {
-//
-//        VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
-//        byte[] randomData = new byte[1024 * 1024];//1MB
-//        Random r = new Random();
-//        OutputStream lfos = newFile.getOutputStream();
-//        int count = 50;
-//
-//        long startTime = System.currentTimeMillis();
-//
-//        for (int i = 0; i < count; i++) {
-//            r.nextBytes(randomData);
-//            lfos.write(randomData);
-//        }
-//
-//        lfos.flush();
-//        lfos.close();
-//        long totalTime = System.currentTimeMillis() - startTime;
-//
-//
-//        long len = newFile.getLength();
-//        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0) + " MB");
-//        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
-//        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-//                + "KB/s");
-//
-//
-//        long expectedLen = randomData.length * count;
-//        assertEquals(expectedLen, len);
-//
-//        startTime = System.currentTimeMillis();
-//        VFile newLocalFile = newFile.moveTo(this.localTempDir, "testLargeFile");
-//
-//        totalTime = System.currentTimeMillis() - startTime;
-//
-//        double down_speed = (newLocalFile.getLength() / 1024.0) / (totalTime / 1000.0);
-//        verbose(1, "download speed=" + ((int) (down_speed * 1000)) / 1000.0
-//                + "KB/s");
-//
-//        Assert.assertNotNull("new local File is NULL", newLocalFile);
-//        Assert.assertFalse("remote file reports it still exists, after it has moved", newFile.exists());
-//
-//        newLocalFile.delete();
-//
-//        //Now test lots of small
-//        startTime = System.currentTimeMillis();
-//        for (int i = 0; i < count; i++) {
-//            r.nextBytes(randomData);
-//            getRemoteTestDir().createFile("tesLargeFile" + i).setContents(randomData);
-//        }
-//
-//        totalTime = System.currentTimeMillis() - startTime;
-//        up_speed = ((count * randomData.length) / 1024.0) / (totalTime / 1000.0);
-//        verbose(1, "Many files upload speed=" + ((int) (up_speed * 1000)) / 1000.0
-//                + "KB/s");
-//
-//
-//        for (VFSNode n : getRemoteTestDir().getNodes()) {
-//            n.delete();
-//        }
-//
-//    }
+    public void testUpDownloadLargeFile2() throws VlException, IOException {
+
+        VFile localFile = localTempDir.createFile("tesLargeFile2");
+        byte[] randomData = new byte[1024 * 1024];//1MB
+        Random r = new Random();
+        OutputStream lfos = localFile.getOutputStream();
+        int count = 800;
+        for (int i = 0; i < count; i++) {
+            r.nextBytes(randomData);
+            lfos.write(randomData);
+        }
+
+        lfos.flush();
+        lfos.close();
+
+        verbose(VERBOSE_INFO, "Uploading file size: " + (localFile.getLength() / (1024.0 * 1024.0)) + " MB");
+
+        VFile remoteFile = getRemoteTestDir().createFile("tesLargeFile2");
+
+
+        long startTime = System.currentTimeMillis();
+        if (remoteFile instanceof CloudFile) {
+            ((CloudFile) remoteFile).uploadFrom(localFile);
+        } else {
+            localFile.copyTo(remoteFile);
+        }
+        long totalTime = System.currentTimeMillis() - startTime;
+
+        long len = remoteFile.getLength();
+        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
+        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                + "KB/s");
+
+
+        long expectedLen = randomData.length * count;
+        assertEquals(expectedLen, len);
+        remoteFile.delete();
+        localFile.delete();
+
+    }
+
+    public void testFileConsistency() throws VlException, IOException {
+        VFile localFile = localTempDir.createFile("tesLargeFile2");
+        byte[] randomData = new byte[1024 * 1024];//1MB        
+        Random r = new Random();
+        for (int count = 306; count < 326; count++) {
+            OutputStream lfos = localFile.getOutputStream();
+//            int count = 209;//From 289 to 305 fails. 33554434 is the wrong byte 
+            for (int i = 0; i < count; i++) {
+                r.nextBytes(randomData);
+//            String sd = new BigInteger(130, r).toString()+"\n";
+//            lfos.write(sd.getBytes());
+//            lfos.write(String.valueOf("You can use the -S option to specify the segment size to use when splitting a large file" + i + "\n").getBytes());
+                lfos.write(randomData);
+            }
+
+            lfos.flush();
+            lfos.close();
+
+            VChecksum checksumLocalFile = (VChecksum) localFile;
+            String md5Local = checksumLocalFile.getChecksum(VChecksum.MD5);
+
+
+            VFile remoteFile = getRemoteTestDir().createFile("tesLargeFileRemote2");
+
+
+            long startTime = System.currentTimeMillis();
+            if (remoteFile instanceof CloudFile) {
+                ((CloudFile) remoteFile).uploadFrom(localFile);
+            } else {
+                localFile.copyTo(remoteFile);
+            }
+            long totalTime = System.currentTimeMillis() - startTime;
+
+            long len = remoteFile.getLength();
+            verbose(1, "Uploaded " + (len / 1024.0 * 1024.0 * 1024.0) + " GB");
+            double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+            verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                    + "KB/s");
+
+
+            long expectedLen = localFile.getLength();
+            assertEquals(expectedLen, len);
+            VFile copy = remoteFile.copyToDir(getLocalTempDirVRL());
+            VChecksum checksumRemoteFile = (VChecksum) copy;
+            String md5Remote = checksumRemoteFile.getChecksum(VChecksum.MD5);
+
+            assertEquals("Size: " + count, md5Local, md5Remote);
+
+            remoteFile.delete();
+            localFile.delete();
+            copy.delete();
+        }
+
+    }
+
+    public void testUpDownloadLargeFile() throws VlException, IOException {
+
+        VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
+        byte[] randomData = new byte[1024 * 1024];//1MB
+        Random r = new Random();
+        OutputStream lfos = newFile.getOutputStream();
+        int count = 50;
+
+        long startTime = System.currentTimeMillis();
+
+        for (int i = 0; i < count; i++) {
+            r.nextBytes(randomData);
+            lfos.write(randomData);
+        }
+
+        lfos.flush();
+        lfos.close();
+        long totalTime = System.currentTimeMillis() - startTime;
+
+
+        long len = newFile.getLength();
+        verbose(1, "Uploaded " + (len / 1024.0 * 1024.0) + " MB");
+        double up_speed = (len / 1024.0) / (totalTime / 1000.0);
+        verbose(1, "upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                + "KB/s");
+
+
+        long expectedLen = randomData.length * count;
+        assertEquals(expectedLen, len);
+
+        startTime = System.currentTimeMillis();
+        VFile newLocalFile = newFile.moveTo(this.localTempDir, "testLargeFile");
+
+        totalTime = System.currentTimeMillis() - startTime;
+
+        double down_speed = (newLocalFile.getLength() / 1024.0) / (totalTime / 1000.0);
+        verbose(1, "download speed=" + ((int) (down_speed * 1000)) / 1000.0
+                + "KB/s");
+
+        Assert.assertNotNull("new local File is NULL", newLocalFile);
+        Assert.assertFalse("remote file reports it still exists, after it has moved", newFile.exists());
+
+        newLocalFile.delete();
+
+        //Now test lots of small
+        startTime = System.currentTimeMillis();
+        for (int i = 0; i < count; i++) {
+            r.nextBytes(randomData);
+            getRemoteTestDir().createFile("tesLargeFile" + i).setContents(randomData);
+        }
+
+        totalTime = System.currentTimeMillis() - startTime;
+        up_speed = ((count * randomData.length) / 1024.0) / (totalTime / 1000.0);
+        verbose(1, "Many files upload speed=" + ((int) (up_speed * 1000)) / 1000.0
+                + "KB/s");
+
+
+        for (VFSNode n : getRemoteTestDir().getNodes()) {
+            n.delete();
+        }
+
+    }
     // ========================================================================
     // Abstract Interface
     // ========================================================================
     // VFS methods which must be subclassed by VFS Implementation.
+
     /**
      * For 3rd party transfer !
      */
@@ -3278,7 +3280,6 @@ verbose(3, "testVUnixAttributes");
 //            message("*** Warning. Deleting local test directory failed:" + e);
 //        }
 //    }
-
     public void setRemoteTestDir(VDir remoteTestDir) {
         this.remoteTestDir = remoteTestDir;
     }
