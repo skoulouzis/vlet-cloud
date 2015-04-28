@@ -414,7 +414,13 @@ public class CloudFileSystem extends FileSystemNode {
                             exists = false;
                         }
                     } else {
-                        throw new ResourceException(ex.getMessage());
+                        if (ex != null && ex.getMessage() != null) {
+                            throw new ResourceException(ex.getMessage());
+                        } else if (ex != null) {
+                            throw new ResourceException("Exeption for " + vrl, ex);
+                        } else {
+                            throw new ResourceException("Exeption for " + vrl + ". Container: "+containerAndPath[0] + "path:  "+containerAndPath[1]);
+                        }
                     }
                 }
 
@@ -557,10 +563,14 @@ public class CloudFileSystem extends FileSystemNode {
         try {
             meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
         } catch (Exception ex) {
-            if (ex.getMessage().contains("(Is a directory)")) {
+            if (ex != null && ex.getMessage() != null && ex.getMessage().contains("(Is a directory)")) {
                 throw new ResourceAlreadyExistsException(
                         vrl + " already exists as a folder");
-            }
+            } 
+//            else if (ex != null) {
+//                throw new ResourceAlreadyExistsException(
+//                        vrl + " already exists as a folder", ex);
+//            }
         }
 
         if (meta == null) {
@@ -723,7 +733,7 @@ public class CloudFileSystem extends FileSystemNode {
         doChunkUpload = (Boolean) getContext().getProperty("chunk.upload");
         props = new Properties();
 
-        props.setProperty("jclouds.mpu.parallel.degree", "5");
+//        props.setProperty("jclouds.mpu.parallel.degree", "5");
 // This property controls the size (in bytes) of parts being uploaded in parallel, the default is 33554432 bytes = 32 MB
 //        props.setProperty("jclouds.mpu.parts.size", "43554431"); // 64 MB
 

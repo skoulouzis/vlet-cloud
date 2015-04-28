@@ -27,6 +27,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import nl.uva.vlet.exception.VRLSyntaxException;
@@ -48,14 +50,14 @@ public class testVFSCloud extends testVFS {
 
     static {
         try {
+            testLoc =  new VRL(getCloudProperties().getProperty("test.location"));
 //            testLoc = new VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
 //            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
 //            testLoc = new VRL(
 //                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
 //             testLoc = new VRL(
 //                    "swift://10.0.3.25:8080/auth/v1.0/testBlobStoreVFS");
-             testLoc = new VRL(
-                    "aws-s3://aws.amazon.com/testBlobStoreVFS");
+//             testLoc = new VRL("aws-s3://aws.amazon.com/testBlobStoreVFS");
              
             
 
@@ -65,6 +67,10 @@ public class testVFSCloud extends testVFS {
         } catch (VRLSyntaxException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

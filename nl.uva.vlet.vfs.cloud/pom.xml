@@ -17,8 +17,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                 </configuration>
                 <version>2.5</version>
             </plugin> 
@@ -247,11 +247,11 @@
 
 
     <repositories>
-        <repository>
+        <!--        <repository>
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-releases</name>
             <url>http://elab.lab.uvalight.net/artifactory/repo</url>
-        </repository>
+        </repository>-->
         
         <!--        <repository>
             <id>jclouds-snapshots</id>
@@ -260,12 +260,29 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>-->
+        
+        
+        <repository>
+            <snapshots />
+            <id>skoulouzis-snapshots</id>
+            <url>https://raw.github.com/skoulouzis/mvn-repo/master/snapshots</url>
+        </repository>
+                
+                
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>releases</id>
+            <url>https://raw.github.com/skoulouzis/mvn-repo/master/releases</url>
+        </repository>
+        
     </repositories>
     
     
     
     <distributionManagement>
-        <repository>
+        <!--        <repository>
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-releases</name>
             <url>http://elab.lab.uvalight.net/artifactory/local</url>
@@ -274,6 +291,17 @@
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-snapshots</name>
             <url>http://elab.lab.uvalight.net/artifactory/local</url>
+        </snapshotRepository>-->
+        
+        <snapshotRepository>
+            <id>skoulouzis-snapshots</id>
+            <url>https://raw.github.com/skoulouzis/mvn-repo/master/snapshots</url>
         </snapshotRepository>
+                
+                
+        <repository>
+            <id>releases</id>
+            <url>https://raw.github.com/skoulouzis/mvn-repo/master/releases</url>
+        </repository>
     </distributionManagement>
 </project>
