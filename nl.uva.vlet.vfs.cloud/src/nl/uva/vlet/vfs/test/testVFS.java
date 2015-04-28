@@ -158,31 +158,31 @@ public class testVFS extends VTestCase {
             // create/get only if VDir hasn't been fetched/created before !
 //            if (getRemoteTestDir() == null) {
 
-                if (getVFS().existsDir(getRemoteLocation())) {
-                    setRemoteTestDir(getVFS().getDir(getRemoteLocation()));
+            if (getVFS().existsDir(getRemoteLocation())) {
+                setRemoteTestDir(getVFS().getDir(getRemoteLocation()));
 
-                    verbose(3, "setUp(): Using remoteDir:" + getRemoteTestDir());
+                verbose(3, "setUp(): Using remoteDir:" + getRemoteTestDir());
 
-                } else {
-                    // create complete path !
-                    try {
-                        verbose(1, "creating new remote test location:"
-                                + getRemoteLocation());
-                        loc = getRemoteLocation();
-                        dir = getVFS().mkdirs(loc);
-                        setRemoteTestDir(dir);
+            } else {
+                // create complete path !
+                try {
+                    verbose(1, "creating new remote test location:"
+                            + getRemoteLocation());
+                    loc = getRemoteLocation();
+                    dir = getVFS().mkdirs(loc);
+                    setRemoteTestDir(dir);
 
-                        verbose(1, "New created remote test directory="
-                                + getRemoteTestDir());
-
-                    } catch (VlException e) {
-                        e.printStackTrace();
-                        throw e;
-                    }
-
-                    verbose(1, "created new remote test location:"
+                    verbose(1, "New created remote test directory="
                             + getRemoteTestDir());
+
+                } catch (VlException e) {
+                    e.printStackTrace();
+                    throw e;
                 }
+
+                verbose(1, "created new remote test location:"
+                        + getRemoteTestDir());
+            }
 
 //            }
 
@@ -920,7 +920,7 @@ public class testVFS extends VTestCase {
     }
 
     /**
-     * Create empty dir, copy it and delete both. Regression test for SRM
+     * Create empty dir, copy it and delete both. Regression test for SRM u
      *
      * @throws VlException
      */
@@ -3114,15 +3114,15 @@ public class testVFS extends VTestCase {
     }
 
     public void testFileConsistency() throws VlException, IOException {
-                if (getTestDoBigTests() == false) {
+        if (getTestDoBigTests() == false) {
             return;
         }
         verbose(3, "testFileConsistency");
-        
+
         VFile localFile = localTempDir.createFile("tesLargeFile2");
         byte[] randomData = new byte[1024 * 1024];//1MB        
         Random r = new Random();
-        for (int count = 306; count < 326; count++) {
+        for (int count = 10; count < 20; count++) {
             OutputStream lfos = localFile.getOutputStream();
 //            int count = 209;//From 289 to 305 fails. 33554434 is the wrong byte 
             for (int i = 0; i < count; i++) {
@@ -3178,7 +3178,7 @@ public class testVFS extends VTestCase {
             return;
         }
         verbose(3, "testUpDownloadLargeFile");
-        
+
         VFile newFile = getRemoteTestDir().createFile("tesLargeFile");
         byte[] randomData = new byte[1024 * 1024];//1MB
         Random r = new Random();
