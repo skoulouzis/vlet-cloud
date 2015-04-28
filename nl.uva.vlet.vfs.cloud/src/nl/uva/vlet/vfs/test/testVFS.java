@@ -994,7 +994,8 @@ public class testVFS extends VTestCase {
     public void testListDirFiltered() throws VlException {
         verbose(3, "testListDirFiltered");
         VDir ldir = getRemoteTestDir().createDir("dirListTest");
-
+        ldir.delete();
+        ldir = getRemoteTestDir().createDir("dirListTest");
         // list EMPTY dir:
         VFSNode[] nodes = ldir.list();
 

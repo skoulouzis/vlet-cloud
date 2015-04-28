@@ -226,8 +226,13 @@ public class CloudFileSystem extends FileSystemNode {
                         container, restOfThePath);
             }
         } catch (org.jclouds.blobstore.ContainerNotFoundException e) {
-            throw new nl.uva.vlet.exception.ResourceNotFoundException(path
-                    + " not found. " + e.getMessage());
+            if (e.getMessage() != null) {
+                throw new nl.uva.vlet.exception.ResourceNotFoundException(path
+                        + " not found. " + e.getMessage());
+            } else {
+                throw new nl.uva.vlet.exception.ResourceNotFoundException(path
+                        + " not found. ");
+            }
         } finally {
             //blobContext.close();
         }
@@ -289,14 +294,23 @@ public class CloudFileSystem extends FileSystemNode {
 //            blobstore.containerExists("");
         } catch (Exception ex) {
             if (ex instanceof org.jclouds.rest.AuthorizationException) {
-                throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
+                if (ex.getMessage() != null) {
+                    throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
+                }else{
+                    throw new nl.uva.vlet.exception.VlAuthenticationException("Authorization Exception");
+                }
             }
             if (ex instanceof HttpResponseException
                     && ex.getMessage().contains("Unrecognized SSL message, plaintext connection?")
                     || ex instanceof MalformedURLException
                     || ex instanceof IOException
                     || ex instanceof javax.net.ssl.SSLException) {
-                throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
+                if (ex.getMessage() != null) {
+                     throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
+                }else{
+                     throw new nl.uva.vlet.exception.VlConfigurationError("Unrecognized SSL message");
+                }
+               
             }
             throw new nl.uva.vlet.exception.VlException(ex);
         }
@@ -419,7 +433,7 @@ public class CloudFileSystem extends FileSystemNode {
                         } else if (ex != null) {
                             throw new ResourceException("Exeption for " + vrl, ex);
                         } else {
-                            throw new ResourceException("Exeption for " + vrl + ". Container: "+containerAndPath[0] + "path:  "+containerAndPath[1]);
+                            throw new ResourceException("Exeption for " + vrl + ". Container: " + containerAndPath[0] + "path:  " + containerAndPath[1]);
                         }
                     }
                 }
@@ -566,7 +580,7 @@ public class CloudFileSystem extends FileSystemNode {
             if (ex != null && ex.getMessage() != null && ex.getMessage().contains("(Is a directory)")) {
                 throw new ResourceAlreadyExistsException(
                         vrl + " already exists as a folder");
-            } 
+            }
 //            else if (ex != null) {
 //                throw new ResourceAlreadyExistsException(
 //                        vrl + " already exists as a folder", ex);
@@ -628,7 +642,7 @@ public class CloudFileSystem extends FileSystemNode {
         try {
             meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
         } catch (Exception ex) {
-            if (ex.getMessage().contains("(Is a directory)") && !ignoreExisting) {
+            if (ex.getMessage() != null && ex.getMessage().contains("(Is a directory)") && !ignoreExisting) {
                 throw new ResourceAlreadyExistsException(ex.getMessage());
             } else {
                 return;
