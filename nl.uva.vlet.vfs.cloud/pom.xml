@@ -7,7 +7,7 @@
     <version>2.2</version>
     
     <properties>
-        <jclouds.version>1.8.1</jclouds.version>
+        <jclouds.version>1.9.0</jclouds.version>
     </properties>
         
 
@@ -17,13 +17,13 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.6</source>
+                    <target>1.6</target>
                 </configuration>
                 <version>2.5</version>
             </plugin> 
             
-            <plugin>
+            <!--            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <executions>
@@ -35,6 +35,19 @@
                     </execution>
                 </executions>
                 <version>2.1.2</version>
+            </plugin>-->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>fully.qualified.MainClass</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
             </plugin>
         </plugins>   
     </build>
@@ -261,7 +274,6 @@
             </snapshots>
         </repository>-->
         
-        
         <repository>
             <snapshots />
             <id>skoulouzis-snapshots</id>
@@ -281,8 +293,8 @@
     
     
     
-    <distributionManagement>
-        <!--        <repository>
+    <!--    <distributionManagement>
+        <repository>
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-releases</name>
             <url>http://elab.lab.uvalight.net/artifactory/local</url>
@@ -291,17 +303,6 @@
             <id>elab.lab.uvalight.net</id>
             <name>elab.lab.uvalight.net-snapshots</name>
             <url>http://elab.lab.uvalight.net/artifactory/local</url>
-        </snapshotRepository>-->
-        
-        <snapshotRepository>
-            <id>skoulouzis-snapshots</id>
-            <url>https://raw.github.com/skoulouzis/mvn-repo/master/snapshots</url>
         </snapshotRepository>
-                
-                
-        <repository>
-            <id>releases</id>
-            <url>https://raw.github.com/skoulouzis/mvn-repo/master/releases</url>
-        </repository>
-    </distributionManagement>
+    </distributionManagement>-->
 </project>
