@@ -50,23 +50,10 @@ public class testVFSCloud extends testVFS {
 
     static {
         try {
-            testLoc =  new VRL(getCloudProperties().getProperty("test.location"));
-//            testLoc = new VRL("swift://149.156.10.131:8443/auth/v1.0/testBlobStoreVFS");
-//            testLoc = new VRL("swift://10.100.0.24:5000/v2.0/testBlobStoreVFS");
-//            testLoc = new VRL(
-//                    "swift://10.0.3.208:8080/auth/v1.0/testBlobStoreVFS");
-//             testLoc = new VRL(
-//                    "swift://10.0.3.25:8080/auth/v1.0/testBlobStoreVFS");
-//             testLoc = new VRL("aws-s3://aws.amazon.com/testBlobStoreVFS");
-             
-            
-
-//            testLoc = new VRL("sftp://skoulouz@elab.lab.uvalight.net/home/skoulouz/tmp/testBlobStoreVFS");
-//            testLoc = new VRL(
-//                    "filesystem:/testBlobStoreVFS");
+            testLoc = new VRL(getCloudProperties().getProperty("test.location"));
         } catch (VRLSyntaxException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, e);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -102,6 +89,11 @@ public class testVFSCloud extends testVFS {
         return new TestSuite(testVFSCloud.class);
     }
 
+    @Override
+    boolean getTestEncodedPaths() {
+        return false;
+    }
+
     private static Properties getCloudProperties()
             throws FileNotFoundException, IOException {
         Properties properties = new Properties();
@@ -110,6 +102,18 @@ public class testVFSCloud extends testVFS {
         properties.load(new FileInputStream(f));
 
         return properties;
+    }
+
+    @Override
+    protected boolean getTestDoBigTests() {
+        try {
+            return Boolean.valueOf(getCloudProperties().getProperty("big.tests", "false"));
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(testVFSCloud.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
     }
 
     public static void main(String args[]) {
