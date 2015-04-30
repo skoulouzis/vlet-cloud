@@ -1,5 +1,7 @@
 package nl.uva.vlet.vfs.cloud;
 
+import com.google.common.io.ByteSource;
+import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
 import java.math.BigInteger;
@@ -296,7 +298,7 @@ public class CloudFileSystem extends FileSystemNode {
             if (ex instanceof org.jclouds.rest.AuthorizationException) {
                 if (ex.getMessage() != null) {
                     throw new nl.uva.vlet.exception.VlAuthenticationException(ex.getMessage());
-                }else{
+                } else {
                     throw new nl.uva.vlet.exception.VlAuthenticationException("Authorization Exception");
                 }
             }
@@ -306,11 +308,11 @@ public class CloudFileSystem extends FileSystemNode {
                     || ex instanceof IOException
                     || ex instanceof javax.net.ssl.SSLException) {
                 if (ex.getMessage() != null) {
-                     throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
-                }else{
-                     throw new nl.uva.vlet.exception.VlConfigurationError("Unrecognized SSL message");
+                    throw new nl.uva.vlet.exception.VlConfigurationError(ex.getMessage());
+                } else {
+                    throw new nl.uva.vlet.exception.VlConfigurationError("Unrecognized SSL message");
                 }
-               
+
             }
             throw new nl.uva.vlet.exception.VlException(ex);
         }
@@ -714,6 +716,8 @@ public class CloudFileSystem extends FileSystemNode {
 //            uploader.upload();
 //        } else {
         blob.setPayload(file);
+        //        ByteSource payload = Files.asByteSource(file);
+//        blob.setPayload(payload);
 //        BigInteger large4G = new BigInteger("4000000000");
         long large4G = Long.valueOf("4000000000");
 //        BigInteger fileSize = BigInteger.valueOf(Long.valueOf(file.length()).intValue());
