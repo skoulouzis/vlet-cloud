@@ -202,7 +202,7 @@ public class CloudFileSystem extends FileSystemNode {
             if (StringUtil.isEmpty(restOfThePath)) {
                 //                ListenableFuture<Boolean> res = blobstore.containerExists(container);
                 //                block(res);
-                boolean exists = blobstore.containerExists(container);
+                boolean exists = getBlobstore().containerExists(container);
                 if (exists) {
                     meta = new StorageMetadataImpl(StorageType.CONTAINER, container, null, null, null, null, null, null, new HashMap<String, String>());
 //                    meta = new StorageMetadataImpl(StorageType.CONTAINER, null,
@@ -210,7 +210,7 @@ public class CloudFileSystem extends FileSystemNode {
 //                            new HashMap<String, String>());
                 }
             } else {
-                if (blobstore == null) {
+                if (getBlobstore() == null) {
                     connect();
                 }
 
@@ -224,7 +224,7 @@ public class CloudFileSystem extends FileSystemNode {
 //                    System.err.println(it.next().getName());
 //                }
 
-                meta = blobstore.blobMetadata(
+                meta = getBlobstore().blobMetadata(
                         container, restOfThePath);
             }
         } catch (org.jclouds.blobstore.ContainerNotFoundException e) {
@@ -277,10 +277,14 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public boolean isConnected() {
-        if (blobstore == null) {
-            return false;
-        } else {
-            return true;
+        try {
+            if (getBlobstore() == null) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (VlException ex) {
+             return false;
         }
     }
 
@@ -335,21 +339,23 @@ public class CloudFileSystem extends FileSystemNode {
 
     @Override
     public void dispose() {
-        blobstore.getContext().close();
-        blobstore = null;
+        if (blobstore != null) {
+            blobstore.getContext().close();
+            blobstore = null;
+        }
         getCache().clear();
     }
 
     public long getNumOfNodes(VRL vrl) throws VRLSyntaxException,
-            InterruptedException, ExecutionException, CloudRequestTimeout {
+            InterruptedException, ExecutionException, CloudRequestTimeout, VlException {
         long numOfNodes;
         String[] containerAndPath = getContainerAndPath(vrl);
         try {
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
-                numOfNodes = blobstore.countBlobs(containerAndPath[0]);
+                numOfNodes = getBlobstore().countBlobs(containerAndPath[0]);
             } else {
-                numOfNodes = blobstore.countBlobs(
+                numOfNodes = getBlobstore().countBlobs(
                         containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
             }
@@ -366,7 +372,7 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
 
-    protected VDir mkdir(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, ResourceException, CloudRequestTimeout {
+    protected VDir mkdir(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, ResourceException, CloudRequestTimeout, VlException {
         String[] containerAndPath = getContainerAndPath(vrl);
         //Create container
         if (containerAndPath.length <= 1
@@ -415,13 +421,10 @@ public class CloudFileSystem extends FileSystemNode {
 
             if (containerAndPath.length <= 1
                     || StringUtil.isEmpty(containerAndPath[1])) {
-                if (blobstore == null) {
-                    this.connect();
-                }
-                exists = blobstore.containerExists(containerAndPath[0]);
+                exists = getBlobstore().containerExists(containerAndPath[0]);
             } else if (containerAndPath.length > 1) {
                 try {
-                    meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+                    meta = getBlobstore().blobMetadata(containerAndPath[0], containerAndPath[1]);
                 } catch (Exception ex) {
                     if (ex != null && ex.getMessage() != null && ex.getMessage().contains("(Is a directory)")) {
                         if (type != StorageType.BLOB) {
@@ -459,27 +462,27 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     public boolean rm(VRL vrl, StorageType type) throws VRLSyntaxException,
-            InterruptedException, ExecutionException, CloudRequestTimeout {
+            InterruptedException, ExecutionException, CloudRequestTimeout, VlException {
         boolean removed = false;
         String[] containerAndPath = getContainerAndPath(vrl);
 
         if (containerAndPath.length <= 1
                 || StringUtil.isEmpty(containerAndPath[1])) {
 
-            blobstore.deleteContainer(containerAndPath[0]);
+            getBlobstore().deleteContainer(containerAndPath[0]);
             removed = true;
         } else if (containerAndPath.length > 1) {
 
             if (type != StorageType.BLOB) {
-                blobstore.deleteDirectory(containerAndPath[0], containerAndPath[1]);
+                getBlobstore().deleteDirectory(containerAndPath[0], containerAndPath[1]);
             } else {
-                PageSet<? extends StorageMetadata> list = blobstore.list(containerAndPath[0],
+                PageSet<? extends StorageMetadata> list = getBlobstore().list(containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
 
                 for (StorageMetadata m : list) {
-                    blobstore.removeBlob(containerAndPath[0], m.getName());
+                    getBlobstore().removeBlob(containerAndPath[0], m.getName());
                 }
-                blobstore.removeBlob(containerAndPath[0], containerAndPath[1]);
+                getBlobstore().removeBlob(containerAndPath[0], containerAndPath[1]);
             }
             removed = true;
         }
@@ -490,7 +493,7 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     public VFSNode[] ls(VRL vrl) throws VRLSyntaxException,
-            InterruptedException, ExecutionException, CloudRequestTimeout {
+            InterruptedException, ExecutionException, CloudRequestTimeout, VlException {
         //BlobStoreContext blobContext = getBlobStoreContext();
         VFSNode[] nodesArry = null;
         try {
@@ -503,12 +506,12 @@ public class CloudFileSystem extends FileSystemNode {
 
                 logger.debugPrintf("list(%s).\n ", containerAndPath[0]);
 
-                list = blobstore.list(containerAndPath[0]);
+                list = getBlobstore().list(containerAndPath[0]);
 
             } else {
                 logger.debugPrintf("list(%s/%s).\n ", containerAndPath[0],
                         containerAndPath[1]);
-                list = blobstore.list(containerAndPath[0],
+                list = getBlobstore().list(containerAndPath[0],
                         Builder.inDirectory(containerAndPath[1]));
 
             }
@@ -540,12 +543,12 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     public InputStream getInputStream(VRL vrl) throws VRLSyntaxException,
-            InterruptedException, ExecutionException, CloudRequestTimeout {
+            InterruptedException, ExecutionException, CloudRequestTimeout, VlException {
         try {
 
             String[] containerAndPath = getContainerAndPath(vrl);
 
-            Blob blob = blobstore.getBlob(containerAndPath[0],
+            Blob blob = getBlobstore().getBlob(containerAndPath[0],
                     containerAndPath[1]);
 
             Payload payload = blob.getPayload();
@@ -556,7 +559,7 @@ public class CloudFileSystem extends FileSystemNode {
         }
     }
 
-    public OutputStream getOutputStream(VRL vrl) throws VRLSyntaxException, IOException, InterruptedException, ExecutionException {
+    public OutputStream getOutputStream(VRL vrl) throws VRLSyntaxException, IOException, InterruptedException, ExecutionException, VlException {
 
         String[] containerAndPath = getContainerAndPath(vrl);
 //        return new CloudOutputStream(containerAndPath[0], containerAndPath[1],
@@ -565,19 +568,19 @@ public class CloudFileSystem extends FileSystemNode {
 //        if (vrl.getScheme().equals("swift") && doChunkUpload != null && doChunkUpload) {
 //            return new SwiftCloudOutputStream(containerAndPath[0], containerAndPath[1], blobstore, props.getProperty(org.jclouds.Constants.PROPERTY_CREDENTIAL));
 //        } else {
-        return new CloudOutputStream(containerAndPath[0], containerAndPath[1], blobstore);
+        return new CloudOutputStream(containerAndPath[0], containerAndPath[1], getBlobstore());
 //        }
 
     }
 
-    public boolean touch(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, CloudRequestTimeout {
+    public boolean touch(VRL vrl, boolean ignoreExisting) throws VRLSyntaxException, InterruptedException, ExecutionException, ResourceAlreadyExistsException, CloudRequestTimeout, VlException {
         boolean created = false;
         String[] containerAndPath = getContainerAndPath(vrl);
         //Exists ?
 //        ListenableFuture<BlobMetadata> blobMeta = null;
         BlobMetadata meta = null;
         try {
-            meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+            meta = getBlobstore().blobMetadata(containerAndPath[0], containerAndPath[1]);
         } catch (Exception ex) {
             if (ex != null && ex.getMessage() != null && ex.getMessage().contains("(Is a directory)")) {
                 throw new ResourceAlreadyExistsException(
@@ -591,9 +594,9 @@ public class CloudFileSystem extends FileSystemNode {
 
         if (meta == null) {
             //Ok non existing 
-            Blob blob = blobstore.blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
+            Blob blob = getBlobstore().blobBuilder(containerAndPath[1]).type(StorageType.BLOB).build();
             blob.setPayload("");
-            String tag = blobstore.putBlob(containerAndPath[0], blob);
+            String tag = getBlobstore().putBlob(containerAndPath[0], blob);
             created = true;
         } else {
             //What is it?
@@ -619,8 +622,8 @@ public class CloudFileSystem extends FileSystemNode {
 ////        logger.debugPrintf(msg + "\n");
 ////        Global.debugPrintf(this, msg + "\n");
 //    }
-    private boolean createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, CloudRequestTimeout {
-        Boolean containerExists = blobstore.containerExists(container);
+    private boolean createContainer(String container, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceCreationFailedException, CloudRequestTimeout, VlException {
+        Boolean containerExists = getBlobstore().containerExists(container);
         if (containerExists && !ignoreExisting) {
             throw new ResourceAlreadyExistsException(
                     container + "Exists");
@@ -628,7 +631,7 @@ public class CloudFileSystem extends FileSystemNode {
             //return new CloudDir(this, vrl);
             return true;
         }
-        Boolean created = blobstore.createContainerInLocation(null,
+        Boolean created = getBlobstore().createContainerInLocation(null,
                 container);
         if (!created) {
             throw new ResourceCreationFailedException(
@@ -638,11 +641,11 @@ public class CloudFileSystem extends FileSystemNode {
         return true;
     }
 
-    private void createFolder(String[] containerAndPath, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceException, CloudRequestTimeout {
+    private void createFolder(String[] containerAndPath, boolean ignoreExisting) throws InterruptedException, ExecutionException, ResourceAlreadyExistsException, ResourceException, CloudRequestTimeout, VlException {
         //Exists ?
         BlobMetadata meta = null;
         try {
-            meta = blobstore.blobMetadata(containerAndPath[0], containerAndPath[1]);
+            meta = getBlobstore().blobMetadata(containerAndPath[0], containerAndPath[1]);
         } catch (Exception ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("(Is a directory)") && !ignoreExisting) {
                 throw new ResourceAlreadyExistsException(ex.getMessage());
@@ -653,7 +656,7 @@ public class CloudFileSystem extends FileSystemNode {
         if (meta == null) {
             //Ok non existing
 //            try {
-            blobstore.createDirectory(containerAndPath[0], containerAndPath[1]);
+            getBlobstore().createDirectory(containerAndPath[0], containerAndPath[1]);
             //return new CloudDir(this, vrl);
             return;
         }
@@ -671,22 +674,22 @@ public class CloudFileSystem extends FileSystemNode {
 
     void setContentsToFile(byte[] bytes, VRL vrl) throws VRLSyntaxException, VlException {
         String[] containerAndPath = getContainerAndPath(vrl);
-        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
+        Blob blob = getBlobstore().getBlob(containerAndPath[0], containerAndPath[1]);
         if (blob == null) {
-            blob = blobstore.blobBuilder(containerAndPath[1]).build();
+            blob = getBlobstore().blobBuilder(containerAndPath[1]).build();
         }
         blob.setPayload(bytes);
-        blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+        getBlobstore().getContext().getBlobStore().putBlob(containerAndPath[0], blob);
     }
 
     void setContentsToFile(String contents, VRL vrl) throws VRLSyntaxException, VlException {
         String[] containerAndPath = getContainerAndPath(vrl);
-        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
+        Blob blob = getBlobstore().getBlob(containerAndPath[0], containerAndPath[1]);
         if (blob == null) {
-            blob = blobstore.blobBuilder(containerAndPath[1]).build();
+            blob = getBlobstore().blobBuilder(containerAndPath[1]).build();
         }
         blob.setPayload(contents);
-        blobstore.getContext().getBlobStore().putBlob(containerAndPath[0], blob);
+        getBlobstore().getContext().getBlobStore().putBlob(containerAndPath[0], blob);
     }
 
     /**
@@ -700,14 +703,15 @@ public class CloudFileSystem extends FileSystemNode {
 //        }
     }
 
-    void uploadFile(VFSTransfer transferInfo, VFile localSource, VRL vrl) throws VRLSyntaxException, InterruptedException, CloudRequestTimeout, ExecutionException, VlException, IOException {
+    void uploadFile(VFSTransfer transferInfo, VFile localSource, VRL vrl) throws VRLSyntaxException, InterruptedException,
+            CloudRequestTimeout, ExecutionException, VlException, IOException {
         if (transferInfo != null) {
             transferInfo.startSubTask("UploadToSwift", localSource.getLength());
         }
         String[] containerAndPath = getContainerAndPath(vrl);
-        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1]);
+        Blob blob = getBlobstore().getBlob(containerAndPath[0], containerAndPath[1]);
         if (blob == null) {
-            blob = blobstore.blobBuilder(containerAndPath[1]).build();
+            blob = getBlobstore().blobBuilder(containerAndPath[1]).build();
         }
         File file = new File(localSource.getVRL().toURI());
 //        Long fileLimit = Long.valueOf("2147483648");
@@ -730,9 +734,9 @@ public class CloudFileSystem extends FileSystemNode {
             BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).overrides(props).build(BlobStoreContext.class);
             blobstore = blobStoreContext.getBlobStore();
 //            }
-            blobstore.putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
+            getBlobstore().putBlob(containerAndPath[0], blob, PutOptions.Builder.multipart(true));
         } else {
-            blobstore.putBlob(containerAndPath[0], blob);
+            getBlobstore().putBlob(containerAndPath[0], blob);
         }
 //        }
         if (transferInfo != null) {
@@ -853,14 +857,25 @@ public class CloudFileSystem extends FileSystemNode {
     }
 
     //It's not safe: Too many requests, and no grantees that the nrBytes will be read.
-    int readBytes(VRL vrl, long fileOffset, byte[] bytes, int bufferOffset, int nrBytes) throws VRLSyntaxException, IOException {
+    int readBytes(VRL vrl, long fileOffset, byte[] bytes, int bufferOffset, int nrBytes) throws VRLSyntaxException, IOException, VlException {
         String[] containerAndPath = getContainerAndPath(vrl);
         long end = fileOffset + nrBytes;
-        Blob blob = blobstore.getBlob(containerAndPath[0], containerAndPath[1], range(fileOffset, end));
+        Blob blob = getBlobstore().getBlob(containerAndPath[0], containerAndPath[1], range(fileOffset, end));
         int numRead = blob.getPayload().getInput().read(bytes, bufferOffset, nrBytes);
 //        if (numRead != nrBytes) {
 //            debug("-----------------Asked: " + nrBytes + " got: " + numRead);
 //        }
         return numRead;
+    }
+
+    /**
+     * @return the blobstore
+     */
+    public BlobStore getBlobstore() throws VlException {
+        if(blobstore == null){
+            disconnect();
+            connect();
+        }
+        return blobstore;
     }
 }

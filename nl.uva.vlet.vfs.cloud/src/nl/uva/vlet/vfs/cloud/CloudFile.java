@@ -25,7 +25,7 @@ import org.jclouds.blobstore.domain.StorageType;
  *
  * @author S. Koulouzis
  */
-public class CloudFile extends VFile implements VChecksum{//, VRandomReadable {
+public class CloudFile extends VFile implements VChecksum {//, VRandomReadable {
 
     private CloudFileSystem cvfs;
 
@@ -209,14 +209,19 @@ public class CloudFile extends VFile implements VChecksum{//, VRandomReadable {
     public void uploadFrom(VFile localSource) throws VlException, VRLSyntaxException {
         try {
             this.cvfs.uploadFile(null, localSource, getVRL());
-        } catch (InterruptedException ex) {
-            throw new nl.uva.vlet.exception.VlInterruptedException(ex);
-        } catch (CloudRequestTimeout ex) {
-            throw new nl.uva.vlet.exception.VlException(ex);
-        } catch (ExecutionException ex) {
-            throw new VlException(ex);
-        } catch (IOException ex) {
-            throw new VlIOException(ex);
+//        } catch (InterruptedException ex) {
+//            throw new nl.uva.vlet.exception.VlInterruptedException(ex);
+//        } catch (CloudRequestTimeout ex) {
+//            throw new nl.uva.vlet.exception.VlException(ex);
+//        } catch (ExecutionException ex) {
+//            throw new VlException(ex);
+//        } catch (IOException ex) {
+//            throw new VlIOException(ex);
+//        }
+        } catch (RuntimeException ex) {
+            uandleUploadException(ex);
+        } catch (Throwable ex) {
+            uandleUploadException(ex);
         }
     }
 
@@ -228,4 +233,13 @@ public class CloudFile extends VFile implements VChecksum{//, VRandomReadable {
 //            throw new nl.uva.vlet.exception.VlIOException(ex);
 //        }
 //    }
+    private void uandleUploadException(Throwable ex) throws VlException {
+        if (ex instanceof InterruptedException) {
+            throw new nl.uva.vlet.exception.VlInterruptedException((InterruptedException) ex);
+        } else if (ex instanceof IOException) {
+            throw new VlIOException((IOException) ex);
+        } else {
+            throw new VlException(ex);
+        }
+    }
 }
