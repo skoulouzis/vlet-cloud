@@ -284,7 +284,7 @@ public class CloudFileSystem extends FileSystemNode {
                 return true;
             }
         } catch (VlException ex) {
-             return false;
+            return false;
         }
     }
 
@@ -872,7 +872,7 @@ public class CloudFileSystem extends FileSystemNode {
      * @return the blobstore
      */
     public BlobStore getBlobstore() throws VlException {
-        if(blobstore == null){
+        if (blobstore == null) {
             disconnect();
             connect();
         }
