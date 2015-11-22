@@ -1,10 +1,7 @@
 package nl.uva.vlet.vfs.cloud;
 
-import com.google.common.io.ByteSource;
-import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.io.*;
-import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
